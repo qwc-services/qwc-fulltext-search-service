@@ -12,6 +12,25 @@ QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',
                '(search_2_stem:"{0}"^4 OR search_2_ngram:"{0}"^3)',
                '(search_3_stem:"{0}"^2 OR search_3_ngram:"{0}"^1)']
 
+DEFAULT_SEARCH_PERMISSIONS = {
+            'foreground': [
+                {
+                    'filter_word': 'Map',
+                    'default': True
+                }
+            ],
+            'ne_10m_admin_0_countries': [
+                {
+                    'filter_word': 'Country',
+                    'default': True
+                }
+            ],
+        }
+
+DEFAULT_OGC_PERMISSIONS = {
+            'layers': {'qwc_demo': True}
+        }
+
 
 class SolrClient:
     """SolrClient class
@@ -28,8 +47,8 @@ class SolrClient:
                                                'http://localhost:8983/solr/gdi/select')
 
     def search(self, identity, searchtext, filter, limit):
-        search_permissions = \
-            {}  # self.permission.dataset_search_permissions(identity)
+        search_permissions = DEFAULT_SEARCH_PERMISSIONS
+        # = self.permission.dataset_search_permissions(identity)
         (filterword, tokens) = self.tokenize(searchtext)
         response = self.query(tokens, filterword, filter, limit,
                               search_permissions)
@@ -213,7 +232,7 @@ class SolrClient:
         """
         permissions = self.permission.ogc_permissions(
             DEFAULT_SEARCH_WMS_NAME, 'WMS', identity
-        )
+        ) or DEFAULT_OGC_PERMISSIONS
         permitted_layers = list(permissions['layers'].keys())
         # if wms.root_layer.name in permitted_layers:
         #     # skip root layer for layer search
