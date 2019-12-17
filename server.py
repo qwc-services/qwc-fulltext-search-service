@@ -78,8 +78,8 @@ app.config['ERROR_404_HELP'] = False
 jwt = jwt_manager(app, api)
 
 
-# routes
-@api.route('/search')
+# base route (should be '/', but doesn't work with flask_restplus)
+@api.route('/fts')
 class SearchResult(Resource):
     @api.doc('search')
     @api.param('searchtext', 'Search string with optional filter prefix')
