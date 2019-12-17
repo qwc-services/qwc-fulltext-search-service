@@ -117,8 +117,8 @@ class SolrClient:
                 self.logger.info("Passed filter ids: %s" % filter_ids)
                 self.logger.info("Permitted filter ids: %s" % facets)
             # Avoid empty fq
-            if len(facets) == 0:
-                facets = ['_']
+            # if len(facets) == 0:
+            #     facets = ['_']  # TODO: use dataset_search_permissions!
         facets = map(lambda f: 'facet:%s' % f, facets)
         query = ' OR '.join(facets)
         return 'fq=%s' % query
