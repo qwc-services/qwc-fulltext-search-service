@@ -67,8 +67,8 @@ Search API:
 
 Examples:
 
-    curl 'http://localhost:5011/fts?filter=foreground,ne_10m_admin_0_countries&searchtext=austr'
-    curl 'http://localhost:5011/fts?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
+    curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=austr'
+    curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
 
 
 Testing

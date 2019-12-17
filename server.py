@@ -79,7 +79,7 @@ jwt = jwt_manager(app, api)
 
 
 # base route (should be '/', but doesn't work with flask_restplus)
-@api.route('/fts')
+@api.route('/fts/')
 class SearchResult(Resource):
     @api.doc('search')
     @api.param('searchtext', 'Search string with optional filter prefix')
