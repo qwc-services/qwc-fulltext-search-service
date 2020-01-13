@@ -7,12 +7,14 @@ import os
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
 from qwc_services_core.jwt import jwt_manager
 from search_service import SolrClient  # noqa: E402
+from search_geom_service import SearchGeomService  # noqa: E402
 
 
 # Flask application
 app = Flask(__name__)
 
 solr_client = SolrClient(app.logger)
+search_geom_service = SearchGeomService(app.logger)
 
 DEFAULT_SEARCH_LIMIT = os.getenv("SEARCH_RESULT_LIMIT", "50")
 
@@ -108,6 +110,31 @@ class SearchResult(Resource):
         result = solr_client.search(get_jwt_identity(), searchtext, filter, limit)
 
         return result
+
+
+@api.route('/geom/<dataset>/')
+@api.response(400, 'Bad request')
+@api.response(404, 'Dataset not found or permission error')
+@api.param('dataset', 'Identifier of dataset. Example: `"ne_10m_admin_0_countries"`')
+class GeomResult(Resource):
+    @api.doc('geom')
+    @api.param('filter', 'JSON serialized array of filter expressions: `[["attr", "op", "value"], "and/or", ["attr", "op", "value"]]`')
+    @jwt_optional
+    def get(self, dataset):
+        """Get dataset geometries
+
+        Return dataset geometries with where clause filters.
+
+        The matching features are returned as GeoJSON FeatureCollection.
+        """
+        filterexpr = request.args.get('filter')
+        result = search_geom_service.query(
+          get_jwt_identity(), dataset, filterexpr)
+        if 'error' not in result:
+            return result['feature_collection']
+        else:
+            error_code = result.get('error_code') or 404
+            api.abort(error_code, result['error'])
 
 
 # local webserver

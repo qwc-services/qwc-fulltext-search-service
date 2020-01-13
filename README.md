@@ -21,6 +21,7 @@ Configuration
 |-------------------------|-------------------------------|---------------------------------------|
 | SOLR_SERVICE_URL        | SOLR service URL              | http://localhost:8983/solr/gdi/select |
 | SEARCH_RESULT_LIMIT     | Result count limit per search | 50                                    |
+| SEARCH_ID_COL           | ID column name of search view |                                       |
 | WORD_SPLIT_RE           | Word split Regexp             | [\s,.:;"]+                            |
 
 
@@ -55,7 +56,7 @@ Configure environment:
 
 Start service:
 
-    python server.py
+    SEARCH_ID_COL=id_in_class python server.py
 
 Search base URL:
 
@@ -69,6 +70,8 @@ Examples:
 
     curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=austr'
     curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
+
+    curl -g 'http://localhost:5011/geom/ne_10m_admin_0_countries/?filter=[["id_in_class","=",90]]'
 
 
 Testing

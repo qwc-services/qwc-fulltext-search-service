@@ -45,6 +45,7 @@ class SolrClient:
         self.permission = PermissionClient()
         self.solr_service_url = os.environ.get('SOLR_SERVICE_URL',
                                                'http://localhost:8983/solr/gdi/select')
+        self.result_id_col = os.environ.get('SEARCH_ID_COL')
 
     def search(self, identity, searchtext, filter, limit):
         search_permissions = DEFAULT_SEARCH_PERMISSIONS
@@ -185,11 +186,12 @@ class SolrClient:
 
         for entry in search_permissions.get(facet, []):
             if self.check_filterword(filterword, entry):
+                id_field_name = self.result_id_col or idfield_meta[0]
                 feature = {
                     'display': doc['display'],
                     'dataproduct_id': facet,
                     'feature_id': feature_id,
-                    'id_field_name': idfield_meta[0],
+                    'id_field_name': id_field_name,
                     'id_field_type': idfield_str,
                     'bbox': bbox
                 }
