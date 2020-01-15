@@ -128,7 +128,7 @@ class SearchGeomService():
             'crs': {
                 'type': 'name',
                 'properties': {
-                    'name': 'urn:ogc:def:crs:EPSG::2056'
+                    'name': 'urn:ogc:def:crs:EPSG::%d' % self.srid
                 }
             },
             'features': features,
@@ -204,15 +204,14 @@ class SearchGeomService():
             'type': 'Feature',
             'id': row[self.primary_key],
             'geometry': json.loads(row['json_geom'] or 'null'),
-            'properties': props,
-            'crs': {
-                'type': 'name',
-                'properties': {
-                    'name': 'urn:ogc:def:crs:EPSG::%d' % self.srid
-                }
-            }
+            'properties': props
         }
-
+        # 'crs': {
+        #     'type': 'name',
+        #     'properties': {
+        #         'name': 'urn:ogc:def:crs:EPSG::%d' % self.srid
+        #     }
+        # }
 
 # Extract coords from bbox string like
 # BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
