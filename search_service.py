@@ -25,6 +25,12 @@ DEFAULT_SEARCH_PERMISSIONS = {
                     'default': True
                 }
             ],
+            'adresse': [
+                {
+                    'filter_word': 'Adresse',
+                    'default': True
+                }
+            ],
         }
 
 DEFAULT_OGC_PERMISSIONS = {
