@@ -19,16 +19,9 @@ DEFAULT_SEARCH_PERMISSIONS = {
                     'default': True
                 }
             ],
-            'ne_10m_admin_0_countries': [
+            '*': [  # Allow all
                 {
-                    'filter_word': 'Country',
-                    'default': True
-                }
-            ],
-            'adresse': [
-                {
-                    'filter_word': 'Adresse',
-                    'default': True
+                    'default': False
                 }
             ],
         }
@@ -116,6 +109,9 @@ class SolrClient:
     def facet_query_str(self, filterword, filter_ids, search_permissions):
         if filterword:
             facets = [self.filterword_to_facet(filterword, search_permissions)]
+        elif '*' in search_permissions:
+            # all allowed, facet = filterword
+            facets = filter_ids
         else:
             # Remove facets without permissions
             facets = list(filter(lambda f: search_permissions.get(f), filter_ids))
@@ -124,13 +120,16 @@ class SolrClient:
                 self.logger.info("Passed filter ids: %s" % filter_ids)
                 self.logger.info("Permitted filter ids: %s" % facets)
             # Avoid empty fq
-            # if len(facets) == 0:
-            #     facets = ['_']  # TODO: use dataset_search_permissions!
+            if len(facets) == 0:
+                facets = ['_']
         facets = map(lambda f: 'facet:%s' % f, facets)
         query = ' OR '.join(facets)
         return 'fq=%s' % query
 
     def filterword_to_facet(self, filterword, search_permissions):
+        if '*' in search_permissions:
+            # all allowed, facet = filterword
+            return filterword
         for facet, entries in search_permissions.items():
             # filterword lookup table should be cached
             for entry in entries:
@@ -190,19 +189,29 @@ class SolrClient:
                 self.logger.error("Error converting feature_id to int: %s" % e)
                 idfield_str = True
 
+        if '*' in search_permissions:
+                return self._feature_rec(
+                    doc, idfield_meta, facet, feature_id, idfield_str, bbox)
+
+        # Return only permitted facets
         for entry in search_permissions.get(facet, []):
             if self.check_filterword(filterword, entry):
-                id_field_name = self.result_id_col or idfield_meta[0]
-                feature = {
-                    'display': doc['display'],
-                    'dataproduct_id': facet,
-                    'feature_id': feature_id,
-                    'id_field_name': id_field_name,
-                    'id_field_type': idfield_str,
-                    'bbox': bbox
-                }
-                return {'feature': feature}
+                return self._feature_rec(
+                    doc, idfield_meta, facet, feature_id, idfield_str, bbox)
         return {}
+
+    def _feature_rec(self, doc, idfield_meta, facet, feature_id,
+                     idfield_str, bbox):
+        id_field_name = self.result_id_col or idfield_meta[0]
+        feature = {
+            'display': doc['display'],
+            'dataproduct_id': facet,
+            'feature_id': feature_id,
+            'id_field_name': id_field_name,
+            'id_field_type': idfield_str,
+            'bbox': bbox
+        }
+        return {'feature': feature}
 
     def result_counts(self, response, filterword, num_solr_results_dp,
                       search_permissions):
@@ -218,15 +227,22 @@ class SolrClient:
                         # Don't return count if all results already included
                         continue
                     count = None
-                # Return multiple results if facet is used for multiple dataproducts
-                for entry in search_permissions.get(facet, []):
-                    if self.check_filterword(filterword, entry):
-                        result_counts.append({
-                            'dataproduct_id': facet,
-                            # rename dataproduct_id to facet!
-                            'filterword': entry['filter_word'],
-                            'count': count
-                        })
+                if '*' in search_permissions:
+                    result_counts.append({
+                        'dataproduct_id': facet,
+                        'filterword': facet,
+                        'count': count
+                    })
+                else:
+                    # Return multiple results if facet is used for multiple dataproducts
+                    for entry in search_permissions.get(facet, []):
+                        if self.check_filterword(filterword, entry):
+                            result_counts.append({
+                                'dataproduct_id': facet,
+                                # rename dataproduct_id to facet!
+                                'filterword': entry['filter_word'],
+                                'count': count
+                            })
         return result_counts
 
     def check_filterword(self, filterword, entry):
