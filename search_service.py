@@ -47,11 +47,12 @@ class SolrClient:
         self.result_id_col = os.environ.get('SEARCH_ID_COL')
 
     def search(self, identity, searchtext, filter, limit):
+        tenant = 'default'
         search_permissions = DEFAULT_SEARCH_PERMISSIONS
         # = self.permission.dataset_search_permissions(identity)
         (filterword, tokens) = self.tokenize(searchtext)
         response = self.query(tokens, filterword, filter, limit,
-                              search_permissions)
+                              tenant, search_permissions)
         # Return Solr error response
         if type(response) is tuple:
             return response
@@ -75,10 +76,12 @@ class SolrClient:
 
         return {'results': results, 'result_counts': result_counts}
 
-    def query(self, tokens, filterword, filter_ids, limit, search_permissions):
+    def query(self, tokens, filterword, filter_ids, limit,
+              tenant, search_permissions):
         # https://lucene.apache.org/solr/guide/8_1/common-query-parameters.html
         q = self.query_str(tokens)
-        fq = self.facet_query_str(filterword, filter_ids, search_permissions)
+        fq = self.filter_query_str(filterword, filter_ids,
+                                   tenant, search_permissions)
         response = requests.get(
             self.solr_service_url,
             params="omitHeader=true&facet=true&facet.field=facet&rows={}"
@@ -106,7 +109,8 @@ class SolrClient:
         query = ' OR '.join(lines)
         return 'q=%s' % query
 
-    def facet_query_str(self, filterword, filter_ids, search_permissions):
+    def filter_query_str(self, filterword, filter_ids,
+                         tenant, search_permissions):
         if filterword:
             facets = [self.filterword_to_facet(filterword, search_permissions)]
         elif '*' in search_permissions:
@@ -123,8 +127,8 @@ class SolrClient:
             if len(facets) == 0:
                 facets = ['_']
         facets = map(lambda f: 'facet:%s' % f, facets)
-        query = ' OR '.join(facets)
-        return 'fq=%s' % query
+        facet_query = ' OR '.join(facets)
+        return 'fq=tenant:%s AND (%s)' % (tenant, facet_query)
 
     def filterword_to_facet(self, filterword, search_permissions):
         if '*' in search_permissions:
