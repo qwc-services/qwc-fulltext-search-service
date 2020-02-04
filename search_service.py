@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from qwc_services_core.permission import PermissionClient
-from flask import json
+from flask import json, request
 
 
 WORD_SPLIT_RE = re.compile(os.environ.get('WORD_SPLIT_RE', '[\s,.:;"]+'))
@@ -45,9 +45,12 @@ class SolrClient:
         self.solr_service_url = os.environ.get('SOLR_SERVICE_URL',
                                                'http://localhost:8983/solr/gdi/select')
         self.result_id_col = os.environ.get('SEARCH_ID_COL')
+        self.tenant_re = os.environ.get('TENANT_REFERRER_RE')
+        if self.tenant_re:
+            self.tenant_re = re.compile(self.tenant_re)
 
     def search(self, identity, searchtext, filter, limit):
-        tenant = 'default'
+        tenant = self.tenant(identity)
         search_permissions = DEFAULT_SEARCH_PERMISSIONS
         # = self.permission.dataset_search_permissions(identity)
         (filterword, tokens) = self.tokenize(searchtext)
@@ -75,6 +78,15 @@ class SolrClient:
             response, filterword, num_solr_results_dp, search_permissions)
 
         return {'results': results, 'result_counts': result_counts}
+
+    def tenant(self, identity):
+        # TODO: support tenant in identity
+        if self.tenant_re and request.referrer:
+            # Extract from referrer URL
+            match = self.tenant_re.match(request.referrer)
+            if match:
+                return match.group(1)
+        return 'default'
 
     def query(self, tokens, filterword, filter_ids, limit,
               tenant, search_permissions):
