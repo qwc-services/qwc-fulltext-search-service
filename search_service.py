@@ -140,7 +140,10 @@ class SolrClient:
                 facets = ['_']
         facets = map(lambda f: 'facet:%s' % f, facets)
         facet_query = ' OR '.join(facets)
-        return 'fq=tenant:%s AND (%s)' % (tenant, facet_query)
+        fq = 'fq=tenant:%s' % tenant
+        if facet_query:
+            fq += ' AND (%s)' % facet_query
+        return fq
 
     def filterword_to_facet(self, filterword, search_permissions):
         if '*' in search_permissions:
