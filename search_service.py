@@ -35,7 +35,7 @@ class SolrClient:
     """SolrClient class
     """
 
-    def __init__(self, logger):
+    def __init__(self, tenant, logger):
         """Constructor
 
         :param Logger logger: Application logger
@@ -48,7 +48,7 @@ class SolrClient:
 
         self.solr_service_url = config.get(
             'solr_service_url', 'http://localhost:8983/solr/gdi/select')
-        self.result_id_col = config.get('result_id_col')
+        self.result_id_col = config.get('search_id_col', 'id_in_class')
         self.default_wms_name = config.get('default_wms_name')
 
         self.permission = PermissionClient()
