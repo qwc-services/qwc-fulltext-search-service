@@ -6,15 +6,13 @@ import os
 
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
 from qwc_services_core.jwt import jwt_manager
+from qwc_services_core.tenant_handler import TenantHandler
 from search_service import SolrClient  # noqa: E402
 from search_geom_service import SearchGeomService  # noqa: E402
 
 
 # Flask application
 app = Flask(__name__)
-
-solr_client = SolrClient(app.logger)
-search_geom_service = SearchGeomService(app.logger)
 
 DEFAULT_SEARCH_LIMIT = os.getenv("SEARCH_RESULT_LIMIT", "50")
 
@@ -79,6 +77,26 @@ app.config['ERROR_404_HELP'] = False
 # Setup the Flask-JWT-Extended extension
 jwt = jwt_manager(app, api)
 
+tenant_handler = TenantHandler(app.logger)
+
+
+def search_handler(identity):
+    tenant = tenant_handler.tenant(identity)
+    handler = tenant_handler.handler('fts', tenant)
+    if handler is None:
+        handler = tenant_handler.register_handler(
+            'fts', tenant, SolrClient(tenant, app.logger))
+    return handler
+
+
+def search_geom_handler(identity):
+    tenant = tenant_handler.tenant(identity)
+    handler = tenant_handler.handler('geom', tenant)
+    if handler is None:
+        handler = tenant_handler.register_handler(
+            'geom', tenant, SearchGeomService(tenant, app.logger))
+    return handler
+
 
 # base route (should be '/', but doesn't work with flask_restplus)
 @api.route('/fts/')
@@ -107,7 +125,8 @@ class SearchResult(Resource):
         # remove empty strings
         filter = [s for s in filter if len(s) > 0]
 
-        result = solr_client.search(get_jwt_identity(), searchtext, filter, limit)
+        handler = search_handler(get_jwt_identity())
+        result = handler.search(get_jwt_identity(), searchtext, filter, limit)
 
         return result
 
@@ -128,7 +147,8 @@ class GeomResult(Resource):
         The matching features are returned as GeoJSON FeatureCollection.
         """
         filterexpr = request.args.get('filter')
-        result = search_geom_service.query(
+        handler = search_geom_handler(get_jwt_identity())
+        result = handler.query(
           get_jwt_identity(), dataset, filterexpr)
         if 'error' not in result:
             return result['feature_collection']

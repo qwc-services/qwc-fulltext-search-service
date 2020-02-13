@@ -3,6 +3,7 @@ import os
 import re
 from flask import json
 from sqlalchemy.sql import text as sql_text
+from qwc_services_core.runtime_config import RuntimeConfig
 from qwc_services_core.database import DatabaseEngine
 
 
@@ -12,25 +13,24 @@ class SearchGeomService():
     Subset of Data Service for getting feature geometries.
     """
 
-    def __init__(self, logger):
+    def __init__(self, tenant, logger):
         """Constructor
 
         :param Logger logger: Application logger
         """
         self.logger = logger
+
+        config_handler = RuntimeConfig("search", logger)
+        config = config_handler.tenant_config(tenant)
+
         self.db_engine = DatabaseEngine()
-        self.db = self.db_engine.geo_db()
-        self.table_name = os.environ.get(
-            'SEARCH_VIEW_NAME', 'search_v'
-        )
-        self.primary_key = os.environ.get(
-            'SEARCH_ID_COL', 'id_in_class'
-        )
+        self.db = self.db_engine.db_engine(config.get('geodb_url'))
+
+        self.table_name = config.get('search_view_name', 'search_v')
+        self.primary_key = config.get('search_id_col', 'id_in_class')
         self.attributes = []
-        self.geometry_column = 'geom'
-        self.srid = int(os.environ.get(
-            'SEARCH_GEOM_SRID', '2056'
-        ))
+        self.geometry_column = config.get('geometry_column', 'geom')
+        self.srid = int(config.get('search_geom_srid', '2056'))
 
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.

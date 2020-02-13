@@ -1,12 +1,12 @@
 import os
 import re
 import requests
+from qwc_services_core.runtime_config import RuntimeConfig
 from qwc_services_core.permission import PermissionClient
 from flask import json, request
 
 
 WORD_SPLIT_RE = re.compile(os.environ.get('WORD_SPLIT_RE', '[\s,.:;"]+'))
-DEFAULT_SEARCH_WMS_NAME = os.environ.get('DEFAULT_SEARCH_WMS_NAME', 'somap')
 
 QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',
                '(search_2_stem:"{0}"^4 OR search_2_ngram:"{0}"^3)',
@@ -41,21 +41,24 @@ class SolrClient:
         :param Logger logger: Application logger
         """
         self.logger = logger
+        self.tenant = tenant
+
+        config_handler = RuntimeConfig("search", logger)
+        config = config_handler.tenant_config(tenant)
+
+        self.solr_service_url = config.get(
+            'solr_service_url', 'http://localhost:8983/solr/gdi/select')
+        self.result_id_col = config.get('result_id_col')
+        self.default_wms_name = config.get('default_wms_name')
+
         self.permission = PermissionClient()
-        self.solr_service_url = os.environ.get('SOLR_SERVICE_URL',
-                                               'http://localhost:8983/solr/gdi/select')
-        self.result_id_col = os.environ.get('SEARCH_ID_COL')
-        self.tenant_re = os.environ.get('TENANT_REFERRER_RE')
-        if self.tenant_re:
-            self.tenant_re = re.compile(self.tenant_re)
 
     def search(self, identity, searchtext, filter, limit):
-        tenant = self.tenant(identity)
         search_permissions = DEFAULT_SEARCH_PERMISSIONS
         # = self.permission.dataset_search_permissions(identity)
         (filterword, tokens) = self.tokenize(searchtext)
         response = self.query(tokens, filterword, filter, limit,
-                              tenant, search_permissions)
+                              search_permissions)
         # Return Solr error response
         if type(response) is tuple:
             return response
@@ -79,21 +82,12 @@ class SolrClient:
 
         return {'results': results, 'result_counts': result_counts}
 
-    def tenant(self, identity):
-        # TODO: support tenant in identity
-        if self.tenant_re and request.referrer:
-            # Extract from referrer URL
-            match = self.tenant_re.match(request.referrer)
-            if match:
-                return match.group(1)
-        return 'default'
-
     def query(self, tokens, filterword, filter_ids, limit,
-              tenant, search_permissions):
+              search_permissions):
         # https://lucene.apache.org/solr/guide/8_1/common-query-parameters.html
         q = self.query_str(tokens)
         fq = self.filter_query_str(filterword, filter_ids,
-                                   tenant, search_permissions)
+                                   search_permissions)
         response = requests.get(
             self.solr_service_url,
             params="omitHeader=true&facet=true&facet.field=facet&rows={}"
@@ -122,7 +116,7 @@ class SolrClient:
         return 'q=%s' % query
 
     def filter_query_str(self, filterword, filter_ids,
-                         tenant, search_permissions):
+                         search_permissions):
         if filterword:
             facets = [self.filterword_to_facet(filterword, search_permissions)]
         elif '*' in search_permissions:
@@ -140,7 +134,7 @@ class SolrClient:
                 facets = ['_']
         facets = map(lambda f: 'facet:%s' % f, facets)
         facet_query = ' OR '.join(facets)
-        fq = 'fq=tenant:%s' % tenant
+        fq = 'fq=tenant:%s' % self.tenant
         if facet_query:
             fq += ' AND (%s)' % facet_query
         return fq
@@ -274,7 +268,7 @@ class SolrClient:
         :param str identity: User name or Identity dict
         """
         permissions = self.permission.ogc_permissions(
-            DEFAULT_SEARCH_WMS_NAME, 'WMS', identity
+            self.default_wms_name, 'WMS', identity
         ) or DEFAULT_OGC_PERMISSIONS
         permitted_layers = list(permissions['layers'].keys())
         # if wms.root_layer.name in permitted_layers:
