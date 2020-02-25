@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/qwc-services/qwc-fulltext-search-service/schemas/qwc-search-service.json",
+  "title": "QWC Fulltext Search Service",
+  "type": "object",
+  "properties": {
+    "service": {
+      "title": "Service name",
+      "type": "string",
+      "const": "search"
+    },
+    "config": {
+      "title": "Config options",
+      "type": "object",
+      "properties": {
+        "solr_service_url": {
+          "description": "SOLR service URL",
+          "type": "string"
+        },
+        "search_id_col": {
+          "description": "ID column name of search view",
+          "type": "string",
+          "default": "id_in_class"
+        },
+        "word_split_re": {
+          "description": "Word split Regex",
+          "type": "string",
+          "default": "[\\s,.:;\"]+"
+        },
+        "search_result_limit": {
+          "description": "Result count limit per search",
+          "type": "integer",
+          "default": 50
+        },
+        "geodb_url": {
+          "description": "DB connection for search geometries view",
+          "type": "string"
+        },
+        "search_view_name": {
+          "description": "View for search geometries",
+          "type": "string",
+          "default": "search_v"
+        },
+        "geometry_column": {
+          "description": "Geometry column for search geometries view",
+          "type": "string",
+          "default": "geom"
+        },
+        "search_geom_srid": {
+          "description": "SRID for search geometries view",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "solr_service_url",
+        "geodb_url",
+        "search_geom_srid"
+      ]
+    },
+    "resources": {
+      "title": "Resources",
+      "type": "object",
+      "properties": {
+        "facets": {
+          "title": "Search facets",
+          "type": "array",
+          "items": {
+            "title": "Facet",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "filter_word": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "filter_word"
+            ]
+          }
+        }
+      },
+      "required": [
+        "facets"
+      ]
+    }
+  },
+  "required": [
+    "service",
+    "config",
+    "resources"
+  ]
+}

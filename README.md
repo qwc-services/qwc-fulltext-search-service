@@ -19,7 +19,41 @@ e.g. `$CONFIG_PATH/default/*.json`. The default tenant name is `default`.
 
 ### Search Service config
 
+* [JSON schema](schemas/qwc-search-service.json)
 * File location: `$CONFIG_PATH/<tenant>/searchConfig.json`
+
+Example:
+```
+{
+  "service": "search",
+  "config": {
+    "solr_service_url": "http://localhost:8983/solr/gdi/select",
+    "search_id_col": "id_in_class",
+    "word_split_re": "[\\s,.:;\"]+",
+    "search_result_limit": 50,
+    "geodb_url": "postgresql:///?service=qwc_geodb",
+    "search_view_name": "qwc_geodb.search_v",
+    "geometry_column": "geom",
+    "search_geom_srid": 3857
+  },
+  "resources": {
+    "facets": [
+      {
+        "name": "background",
+        "filter_word": "Background"
+      },
+      {
+        "name": "foreground",
+        "filter_word": "Map"
+      },
+      {
+        "name": "ne_10m_admin_0_countries",
+        "filter_word": "Country"
+      }
+    ]
+  }
+}
+```
 
 ### Environment variables
 
