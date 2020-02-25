@@ -23,7 +23,7 @@ e.g. `$CONFIG_PATH/default/*.json`. The default tenant name is `default`.
 * File location: `$CONFIG_PATH/<tenant>/searchConfig.json`
 
 Example:
-```
+```json
 {
   "service": "search",
   "config": {
@@ -52,6 +52,50 @@ Example:
       }
     ]
   }
+}
+```
+
+### Permissions
+
+* File location: `$CONFIG_PATH/<tenant>/permissions.json`
+
+Example:
+```json
+{
+  "users": [
+    {
+      "name": "demo",
+      "groups": ["demo"],
+      "roles": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "demo",
+      "roles": ["demo"]
+    }
+  ],
+  "roles": [
+    {
+      "role": "public",
+      "permissions": {
+        "dataproducts": [
+          "qwc_demo"
+        ],
+        "solr_facets": [
+          "foreground",
+          "ne_10m_admin_0_countries"
+        ]
+      }
+    },
+    {
+      "role": "demo",
+      "permissions": {
+        "dataproducts": [],
+        "solr_facets": []
+      }
+    }
+  ]
 }
 ```
 

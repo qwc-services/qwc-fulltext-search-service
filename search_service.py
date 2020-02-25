@@ -1,7 +1,7 @@
 import re
 import requests
+from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
-from qwc_services_core.permission import PermissionClient
 from flask import json, request
 
 
@@ -10,10 +10,6 @@ FILTERWORD_RE = re.compile("^([\w.]+):\b*")
 QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',
                '(search_2_stem:"{0}"^4 OR search_2_ngram:"{0}"^3)',
                '(search_3_stem:"{0}"^2 OR search_3_ngram:"{0}"^1)']
-
-DEFAULT_OGC_PERMISSIONS = {
-            'layers': {'qwc_demo': True}
-        }
 
 
 class SolrClient:
@@ -38,10 +34,9 @@ class SolrClient:
             config.get('word_split_re', r'[\s,.:;"]+')
         )
         self.default_search_limit = config.get('search_result_limit', 50)
-        self.default_wms_name = config.get('default_wms_name')
 
         self.resources = self.load_resources(config)
-        self.permission = PermissionClient()
+        self.permissions_handler = PermissionsReader(tenant, logger)
 
     def search(self, identity, searchtext, filter, limit):
         search_permissions = self.search_permissions(identity)
@@ -60,13 +55,13 @@ class SolrClient:
             return response
 
         self.logger.debug(json.dumps(response, indent=2))
-        permitted_layers = self.layer_permissions(identity)
+        permitted_dataproducts = self.dataproduct_permissions(identity)
         results = []
         num_solr_results_dp = 0
         for doc in response['response']['docs']:
             if doc['facet'] == 'foreground' or doc['facet'] == 'background' or doc['facet'] == 'dataproduct':
                 num_solr_results_dp += 1
-                result = self.layer_result(doc, permitted_layers)
+                result = self.layer_result(doc, permitted_dataproducts)
                 if result is not None:
                     results.append(result)
             else:
@@ -147,12 +142,12 @@ class SolrClient:
         self.logger.info("Filterword not found: %s" % filterword)
         return '_'
 
-    def layer_result(self, doc, permitted_layers):
+    def layer_result(self, doc, permitted_dataproducts):
         id = json.loads(doc['id'])
         dataproduct_id = id[1]
 
         # skip layer without permissions
-        if dataproduct_id not in permitted_layers:
+        if dataproduct_id not in permitted_dataproducts:
             self.logger.debug("Skipping layer result with "
                               "missing permission: %s" % dataproduct_id)
             return None
@@ -169,7 +164,7 @@ class SolrClient:
             children = json.loads(doc['dset_children'])
             for child in children:
                 child_ident = child['ident']
-                if child_ident in permitted_layers:
+                if child_ident in permitted_dataproducts:
                     sublayers.append({
                         'display': child['display'],
                         'type': child['subclass'],
@@ -279,25 +274,33 @@ class SolrClient:
 
         :param str identity: User identity
         """
-        facets = self.resources['facets']
+        # get permitted facets
+        permitted_facets = self.permissions_handler.resource_permissions(
+            'solr_facets', identity
+        )
+        # unique set
+        permitted_facets = set(permitted_facets)
 
-        # TODO: filter by permissions
+        # filter by permissions
+        facets = {}
+        for facet in self.resources['facets']:
+            if facet in permitted_facets:
+                facets[facet] = self.resources['facets'][facet]
 
         return facets
 
-    def layer_permissions(self, identity):
-        """Return OGC permissions for WMS.
+    def dataproduct_permissions(self, identity):
+        """Return permitted dataproducts.
 
-        :param str identity: User name or Identity dict
+        :param str identity: User identity
         """
-        permissions = self.permission.ogc_permissions(
-            self.default_wms_name, 'WMS', identity
-        ) or DEFAULT_OGC_PERMISSIONS
-        permitted_layers = list(permissions['layers'].keys())
-        # if wms.root_layer.name in permitted_layers:
-        #     # skip root layer for layer search
-        #     permitted_layers.remove(wms.root_layer.name)
-        return permitted_layers
+        # get permitted dataproducts
+        permitted_dataproducts = self.permissions_handler.resource_permissions(
+            'dataproducts', identity
+        )
+
+        # return unique sorted dataproducts
+        return sorted(list(set(permitted_dataproducts)))
 
     def split_words(self, searchtext):
         return list(filter(None, re.split(self.word_split_re, searchtext)))
