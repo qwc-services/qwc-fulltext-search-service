@@ -12,20 +12,6 @@ QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',
                '(search_2_stem:"{0}"^4 OR search_2_ngram:"{0}"^3)',
                '(search_3_stem:"{0}"^2 OR search_3_ngram:"{0}"^1)']
 
-DEFAULT_SEARCH_PERMISSIONS = {
-            'foreground': [
-                {
-                    'filter_word': 'Map',
-                    'default': True
-                }
-            ],
-            '*': [  # Allow all
-                {
-                    'default': False
-                }
-            ],
-        }
-
 DEFAULT_OGC_PERMISSIONS = {
             'layers': {'qwc_demo': True}
         }
@@ -51,13 +37,18 @@ class SolrClient:
         self.result_id_col = config.get('search_id_col', 'id_in_class')
         self.default_wms_name = config.get('default_wms_name')
 
+        self.resources = self.load_resources(config)
         self.permission = PermissionClient()
 
     def search(self, identity, searchtext, filter, limit):
-        search_permissions = DEFAULT_SEARCH_PERMISSIONS
-        # = self.permission.dataset_search_permissions(identity)
+        search_permissions = self.search_permissions(identity)
         (filterword, tokens) = self.tokenize(searchtext)
-        response = self.query(tokens, filterword, filter, limit,
+        filter_ids = filter
+        if not filter:
+            # use all permitted facets if filter is empty
+            filter_ids = search_permissions.keys()
+
+        response = self.query(tokens, filterword, filter_ids, limit,
                               search_permissions)
         # Return Solr error response
         if type(response) is tuple:
@@ -261,6 +252,33 @@ class SolrClient:
     def check_filterword(self, filterword, entry):
         return not filterword or (
                entry['filter_word'].lower() == filterword.lower())
+
+    def load_resources(self, config):
+        """Load service resources from config.
+
+        :param RuntimeConfig config: Config handler
+        """
+        # collect service resources (group by facet name)
+        facets = {}
+        for facet in config.resources().get('facets', []):
+            if facet['name'] not in facets:
+                facets[facet['name']] = []
+            facets[facet['name']].append(facet)
+
+        return {
+            'facets': facets
+        }
+
+    def search_permissions(self, identity):
+        """Return permitted search facets.
+
+        :param str identity: User identity
+        """
+        facets = self.resources['facets']
+
+        # TODO: filter by permissions
+
+        return facets
 
     def layer_permissions(self, identity):
         """Return OGC permissions for WMS.

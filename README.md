@@ -14,8 +14,14 @@ Dependencies
 Configuration
 -------------
 
-### Environment variables
+The static config and permission files are stored as JSON files in `$CONFIG_PATH` with subdirectories for each tenant, 
+e.g. `$CONFIG_PATH/default/*.json`. The default tenant name is `default`.
 
+### Search Service config
+
+* File location: `$CONFIG_PATH/<tenant>/searchConfig.json`
+
+### Environment variables
 
 | Variable                | Description                   | Default value                         |
 |-------------------------|-------------------------------|---------------------------------------|
@@ -49,6 +55,8 @@ e.g. with `sudo rm -rf volumes/solr/data/*`
 
 Usage/Development
 -----------------
+
+Set the `CONFIG_PATH` environment variable to the path containing the service config and permission files when starting this service (default: `config`).
 
 Configure environment:
 
