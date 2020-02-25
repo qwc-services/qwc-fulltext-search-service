@@ -1,4 +1,3 @@
-import os
 import re
 import requests
 from qwc_services_core.runtime_config import RuntimeConfig
@@ -6,7 +5,7 @@ from qwc_services_core.permission import PermissionClient
 from flask import json, request
 
 
-WORD_SPLIT_RE = re.compile(os.environ.get('WORD_SPLIT_RE', '[\s,.:;"]+'))
+FILTERWORD_RE = re.compile("^([\w.]+):\b*")
 
 QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',
                '(search_2_stem:"{0}"^4 OR search_2_ngram:"{0}"^3)',
@@ -35,6 +34,10 @@ class SolrClient:
         self.solr_service_url = config.get(
             'solr_service_url', 'http://localhost:8983/solr/gdi/select')
         self.result_id_col = config.get('search_id_col', 'id_in_class')
+        self.word_split_re = re.compile(
+            config.get('word_split_re', r'[\s,.:;"]+')
+        )
+        self.default_search_limit = config.get('search_result_limit', 50)
         self.default_wms_name = config.get('default_wms_name')
 
         self.resources = self.load_resources(config)
@@ -47,6 +50,8 @@ class SolrClient:
         if not filter:
             # use all permitted facets if filter is empty
             filter_ids = search_permissions.keys()
+        if not limit:
+            limit = self.default_search_limit
 
         response = self.query(tokens, filterword, filter_ids, limit,
                               search_permissions)
@@ -97,12 +102,12 @@ class SolrClient:
         match = FILTERWORD_RE.match(searchtext)
         if match:
             st = searchtext[match.span()[1]:]
-            return (match.group(1), split_words(st))
+            return (match.group(1), self.split_words(st))
         else:
-            return (None, split_words(searchtext))
+            return (None, self.split_words(searchtext))
 
     def query_str(self, tokens):
-        lines = map(lambda p: join_word_parts(p, tokens), QUERY_PARTS)
+        lines = map(lambda p: self.join_word_parts(p, tokens), QUERY_PARTS)
         query = ' OR '.join(lines)
         return 'q=%s' % query
 
@@ -294,14 +299,9 @@ class SolrClient:
         #     permitted_layers.remove(wms.root_layer.name)
         return permitted_layers
 
+    def split_words(self, searchtext):
+        return list(filter(None, re.split(self.word_split_re, searchtext)))
 
-FILTERWORD_RE = re.compile("^([\w.]+):\b*")
-
-
-def split_words(searchtext):
-    return list(filter(None, re.split(WORD_SPLIT_RE, searchtext)))
-
-
-def join_word_parts(part, tokens):
-    parts = map(lambda t: part.format(t), tokens)
-    return '(%s)' % ' AND '.join(parts)
+    def join_word_parts(self, part, tokens):
+        parts = map(lambda t: part.format(t), tokens)
+        return '(%s)' % ' AND '.join(parts)

@@ -2,7 +2,6 @@ from flask import Flask, Request as RequestBase, request
 from flask_restplus import Api, Resource, fields, reqparse
 from flask_jwt_extended import JWTManager, jwt_optional, get_jwt_identity
 from werkzeug.exceptions import BadRequest
-import os
 
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
 from qwc_services_core.jwt import jwt_manager
@@ -13,8 +12,6 @@ from search_geom_service import SearchGeomService  # noqa: E402
 
 # Flask application
 app = Flask(__name__)
-
-DEFAULT_SEARCH_LIMIT = os.getenv("SEARCH_RESULT_LIMIT", "50")
 
 api = Api(app, version='1.0', title='Fulltext Search service API',
           description="""API for QWC Fulltext Search service.
@@ -111,7 +108,7 @@ class SearchResult(Resource):
         """
         searchtext = request.args.get('searchtext', None)
         filter_param = request.args.get('filter', "")
-        limit = request.args.get('limit', DEFAULT_SEARCH_LIMIT)
+        limit = request.args.get('limit', None)
         try:
             if limit:
                 limit = int(limit)
