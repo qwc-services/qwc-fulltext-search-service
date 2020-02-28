@@ -79,7 +79,7 @@ tenant_handler = TenantHandler(app.logger)
 
 def search_handler(identity):
     tenant = tenant_handler.tenant(identity)
-    handler = tenant_handler.handler('fts', tenant)
+    handler = tenant_handler.handler('search', 'fts', tenant)
     if handler is None:
         handler = tenant_handler.register_handler(
             'fts', tenant, SolrClient(tenant, app.logger))
@@ -88,7 +88,7 @@ def search_handler(identity):
 
 def search_geom_handler(identity):
     tenant = tenant_handler.tenant(identity)
-    handler = tenant_handler.handler('geom', tenant)
+    handler = tenant_handler.handler('search', 'geom', tenant)
     if handler is None:
         handler = tenant_handler.register_handler(
             'geom', tenant, SearchGeomService(tenant, app.logger))
