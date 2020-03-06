@@ -25,6 +25,7 @@ e.g. `$CONFIG_PATH/default/*.json`. The default tenant name is `default`.
 Example:
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/qwc-services/qwc-fulltext-search-service/master/schemas/qwc-search-service.json",
   "service": "search",
   "config": {
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
