@@ -14,7 +14,7 @@ Dependencies
 Configuration
 -------------
 
-The static config and permission files are stored as JSON files in `$CONFIG_PATH` with subdirectories for each tenant, 
+The static config and permission files are stored as JSON files in `$CONFIG_PATH` with subdirectories for each tenant,
 e.g. `$CONFIG_PATH/default/*.json`. The default tenant name is `default`.
 
 ### Search Service config
@@ -165,6 +165,29 @@ Examples:
     curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
 
     curl -g 'http://localhost:5011/geom/ne_10m_admin_0_countries/?filter=[["id_in_class","=",90]]'
+
+
+Docker usage
+------------
+
+To run this docker image you will need a running Solr search service.
+
+The following steps explain how to download the Solr search service docker image and how to run the `qwc-data-service` with `docker-compose`.
+
+**Step 1: Clone qwc-docker**
+
+    git clone https://github.com/qwc-services/qwc-docker
+    cd qwc-docker
+
+**Step 2: Create docker-compose.yml file**
+
+    cp docker-compose-example.yml docker-compose.yml
+
+**Step 3: Start docker containers**
+
+    docker-compose up qwc-fulltext-search-service
+
+For more information please visit: https://github.com/qwc-services/qwc-docker
 
 
 Testing
