@@ -29,7 +29,6 @@ class SolrClient:
 
         self.solr_service_url = config.get(
             'solr_service_url', 'http://localhost:8983/solr/gdi/select')
-        self.result_id_col = config.get('search_id_col', 'id_in_class')
         self.word_split_re = re.compile(
             config.get('word_split_re', r'[\s,.:;"]+')
         )
@@ -206,7 +205,7 @@ class SolrClient:
 
     def _feature_rec(self, doc, idfield_meta, facet, feature_id,
                      idfield_str, bbox):
-        id_field_name = self.result_id_col or idfield_meta[0]
+        id_field_name = idfield_meta[0]
         feature = {
             'display': doc['display'],
             'dataproduct_id': facet,

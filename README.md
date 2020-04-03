@@ -107,11 +107,11 @@ Config options in the config file can be overridden by equivalent uppercase envi
 | Variable                | Description                                 | Default value                           |
 |-------------------------|---------------------------------------------|-----------------------------------------|
 | SOLR_SERVICE_URL        | SOLR service URL                            | `http://localhost:8983/solr/gdi/select` |
-| SEARCH_ID_COL           | ID column name of search view               | `id_in_class`                           |
 | WORD_SPLIT_RE           | Word split Regex                            | `[\s,.:;"]+`                            |
 | SEARCH_RESULT_LIMIT     | Result count limit per search               | `50`                                    |
 | GEODB_URL               | DB connection for search geometries view    |                                         |
 | SEARCH_VIEW_NAME        | View for search geometries                  | `search_v`                              |
+| SEARCH_ID_COL           | ID column name of search view               | `id_in_class`                           |
 | GEOMETRY_COLUMN         | Geometry column for search geometries view  | `geom`                                  |
 | SEARCH_GEOM_SRID        | SRID for search geometries view             |                                         |
 
