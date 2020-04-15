@@ -37,9 +37,8 @@ class SearchGeomService():
 
         :param str identity: User name or Identity dict
         :param str dataset: Dataset ID
-        :param str filterexpr: JSON serialized array of filter expressions: [["<attr>", "<op>", "<value>"], "and/or", ["<attr>", "<op>", "<value>"]]
+        :param str filterexpr: JSON serialized array of filter expressions: [["<attr>", "=", "<value>"]]
         """
-        bbox = None
         if filterexpr is not None:
             # parse and validate input filter
             filterexpr = self.parse_filter(filterexpr)
@@ -53,18 +52,14 @@ class SearchGeomService():
             filterexpr[1]["vs"] = dataset
             filterexpr = (sql, filterexpr[1])
 
-            feature_collection = self.index(
-                bbox, filterexpr)
+            feature_collection = self.index(filterexpr)
             return {'feature_collection': feature_collection}
         else:
             return {'error': "Dataset not found or permission error"}
 
-    # vvvv Excerpt from  data service vvvvv
-    def index(self, bbox, filterexpr):
-        """Find features inside bounding box.
+    def index(self, filterexpr):
+        """Find features by filter query.
 
-        :param list[float] bbox: Bounding box as [<minx>,<miny>,<maxx>,<maxy>]
-                                 or None for no bounding box
         :param (sql, params) filterexpr: A filter expression as a tuple (sql_expr, bind_params)
         """
         # build query SQL
@@ -74,15 +69,6 @@ class SearchGeomService():
 
         where_clauses = []
         params = {}
-
-        if bbox is not None:
-            # bbox filter
-            where_clauses.append("""
-                ST_Intersects({geom},
-                    ST_SetSRID('BOX3D(:minx :miny, :maxx :maxy)'::box3d, {srid})
-                )
-            """.format(geom=self.geometry_column, srid=self.srid))
-            params.update({"minx": bbox[0], "miny": bbox[1], "maxx": bbox[2], "maxy": bbox[3]})
 
         if filterexpr is not None:
             where_clauses.append(filterexpr[0])
@@ -138,53 +124,34 @@ class SearchGeomService():
     def parse_filter(self, filterstr):
         """Parse and validate a filter expression and return a tuple (sql_expr, bind_params).
 
-        :param str filterstr: JSON serialized array of filter expressions: [["<attr>", "<op>", "<value>"], "and/or", ["<attr>", "<op>", "<value>"]]
+        :param str filterstr: JSON serialized array of filter expressions: [["<attr>", "=", "<value>"]]
         """
         filterarray = json.loads(filterstr)
 
         sql = []
         params = {}
+        if not type(filterarray) is list or len(filterarray) != 1:
+            return (None, "Invalid filter expression")
         i = 0
-        for entry in filterarray:
-            if type(entry) is str:
-                entry = entry.upper()
-                if i%2 != 1 or i == len(filterarray) - 1 or not entry in ["AND", "OR"]:
-                    # Filter concatenation operators must be at odd-numbered positions in the array and cannot appear last
-                    return (None, "Incorrect filter expression concatenation")
-                sql.append(entry)
-            elif type(entry) is list:
-                if len(entry) != 3:
-                    # Filter entry must have exactly three parts
-                    return (None, "Incorrect number of entries in filter expression")
+        expr = filterarray[i]
+        if not type(expr) is list or len(expr) != 3:
+            # Filter expr must have exactly three parts
+            return (None, "Incorrect number of entries in filter expression")
+        column_name = expr[0]
+        if type(column_name) is not str:
+            return (None, "Invalid column name")
 
-                column_name = entry[0]
-                if type(column_name) is not str:
-                    # Invalid column name
-                    return (None, "Invalid column name")
+        op = expr[1].upper().strip()
+        if type(expr[1]) is not str or not op in ["="]:
+            return (None, "Invalid operator")
 
-                op = entry[1].upper().strip()
-                if type(entry[1]) is not str or not op in ["=", "!=", "<>", "<", ">", "<=", ">=", "LIKE", "ILIKE", "IS", "IS NOT"]:
-                    # Invalid operator
-                    return (None, "Invalid operator")
+        value = expr[2]
+        if not type(value) in [int, float, str]:
+            return (None, "Invalid value")
 
-                value = entry[2]
-                if not type(value) in [int,float,str,type(None)]:
-                    # Invalid value
-                    return (None, "Invalid value")
+        sql.append("%s %s :v%d" % (column_name, op, i))
 
-                if value is None:
-                    if op == "=":
-                        op = "IS"
-                    elif op == "!=":
-                        op = "IS NOT"
-
-                sql.append("%s %s :v%d" % (column_name, op, i))
-
-                params["v%d" % i] = value
-            else:
-                # Invalid entry
-                return (None, "Invalid filter expression")
-            i += 1
+        params["v%d" % i] = value
 
         if not sql:
             return (None, "Empty expression")
