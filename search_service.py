@@ -260,9 +260,9 @@ class SolrClient:
         # collect service resources (group by facet name)
         facets = {}
         for facet in config.resources().get('facets', []):
-            if facet['name'] not in facets:
-                facets[facet['name']] = []
-            facets[facet['name']].append(facet)
+            if facet['identifier'] not in facets:
+                facets[facet['identifier']] = []
+            facets[facet['identifier']].append(facet)
 
         return {
             'facets': facets

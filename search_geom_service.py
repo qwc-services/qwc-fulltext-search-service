@@ -22,14 +22,9 @@ class SearchGeomService():
 
         config_handler = RuntimeConfig("search", logger)
         config = config_handler.tenant_config(tenant)
-
+        self.resources = self.load_resources(config)
         self.db_engine = DatabaseEngine()
         self.db = self.db_engine.db_engine(config.get('geodb_url'))
-
-        self.table_name = config.get('search_view_name', 'search_v')
-        self.primary_key = config.get('search_id_col', 'id_in_class')
-        self.attributes = []
-        self.geometry_column = config.get('geometry_column', 'geom')
 
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.
@@ -38,7 +33,9 @@ class SearchGeomService():
         :param str dataset: Dataset ID
         :param str filterexpr: JSON serialized array of filter expressions: [["<attr>", "=", "<value>"]]
         """
-        if filterexpr is not None:
+        resource_cfg = self.resources['facets'].get(dataset)  # TODO: check permissions
+        if resource_cfg is not None and len(resource_cfg) == 1 \
+                and filterexpr is not None:
             # parse and validate input filter
             filterexpr = self.parse_filter(filterexpr)
             if filterexpr[0] is None:
@@ -46,25 +43,28 @@ class SearchGeomService():
                     'error': "Invalid filter expression: " + filterexpr[1],
                     'error_code': 400
                 }
+            facet_column = resource_cfg[0].get('facet_column', 'subclass')
             # Append dataset where clause
-            sql = " AND ".join([filterexpr[0], "subclass=:vs"])
+            sql = " AND ".join([filterexpr[0], "%s=:vs" % facet_column])
             filterexpr[1]["vs"] = dataset
             filterexpr = (sql, filterexpr[1])
 
-            feature_collection = self.index(filterexpr)
+            feature_collection = self.index(filterexpr, resource_cfg[0])
             return {'feature_collection': feature_collection}
         else:
             return {'error': "Dataset not found or permission error"}
 
-    def index(self, filterexpr):
+    def index(self, filterexpr, cfg):
         """Find features by filter query.
 
         :param (sql, params) filterexpr: A filter expression as a tuple (sql_expr, bind_params)
         """
+        table_name = cfg.get('table_name', 'search_v')
+        geometry_column = cfg.get('geometry_column', 'geom')
         # build query SQL
 
-        # select id and permitted attributes
-        columns = (', ').join([self.primary_key] + self.attributes)
+        # select id
+        columns = (', ').join([self.primary_key])
 
         where_clauses = []
         params = {}
@@ -82,8 +82,8 @@ class SearchGeomService():
                 ST_Extent({geom}) OVER () AS bbox_
             FROM {table}
             {where_clause};
-        """.format(columns=columns, geom=self.geometry_column,
-                   table=self.table_name, where_clause=where_clause))
+        """.format(columns=columns, geom=geometry_column,
+                   table=table_name, where_clause=where_clause))
 
         # connect to database and start transaction (for read-only access)
         conn = self.db.connect()
@@ -142,6 +142,7 @@ class SearchGeomService():
         column_name = expr[0]
         if type(column_name) is not str:
             return (None, "Invalid column name")
+        self.primary_key = column_name  # 'id_in_class'
 
         op = expr[1].upper().strip()
         if type(expr[1]) is not str or not op in ["="]:
@@ -165,15 +166,27 @@ class SearchGeomService():
 
         :param obj row: Row result from query
         """
-        props = OrderedDict()
-        for attr in self.attributes:
-            props[attr] = row[attr]
-
         return {
             'type': 'Feature',
             'id': row[self.primary_key],
             'geometry': json.loads(row['json_geom'] or 'null'),
-            'properties': props
+            'properties': {}
+        }
+
+    def load_resources(self, config):
+        """Load service resources from config.
+
+        :param RuntimeConfig config: Config handler
+        """
+        # collect service resources (group by facet name)
+        facets = {}
+        for facet in config.resources().get('facets', []):
+            if facet['identifier'] not in facets:
+                facets[facet['identifier']] = []
+            facets[facet['identifier']].append(facet)
+
+        return {
+            'facets': facets
         }
 
 

@@ -29,27 +29,26 @@ Example:
   "service": "search",
   "config": {
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
-    "search_id_col": "id_in_class",
     "word_split_re": "[\\s,.:;\"]+",
     "search_result_limit": 50,
-    "geodb_url": "postgresql:///?service=qwc_geodb",
-    "search_view_name": "qwc_geodb.search_v",
-    "geometry_column": "geom",
-    "search_geom_srid": 3857
+    "geodb_url": "postgresql:///?service=qwc_geodb"
   },
   "resources": {
     "facets": [
       {
-        "name": "background",
+        "identifier": "background",
         "filter_word": "Background"
       },
       {
-        "name": "foreground",
+        "identifier": "foreground",
         "filter_word": "Map"
       },
       {
-        "name": "ne_10m_admin_0_countries",
-        "filter_word": "Country"
+        "identifier": "ne_10m_admin_0_countries",
+        "filter_word": "Country",
+        "table_name": "qwc_geodb.search_v",
+        "geometry_column": "geom",
+        "facet_column": "subclass"
       }
     ]
   }
@@ -110,10 +109,6 @@ Config options in the config file can be overridden by equivalent uppercase envi
 | WORD_SPLIT_RE           | Word split Regex                            | `[\s,.:;"]+`                            |
 | SEARCH_RESULT_LIMIT     | Result count limit per search               | `50`                                    |
 | GEODB_URL               | DB connection for search geometries view    |                                         |
-| SEARCH_VIEW_NAME        | View for search geometries                  | `search_v`                              |
-| SEARCH_ID_COL           | ID column name of search view               | `id_in_class`                           |
-| GEOMETRY_COLUMN         | Geometry column for search geometries view  | `geom`                                  |
-| SEARCH_GEOM_SRID        | SRID for search geometries view             |                                         |
 
 
 Solr Setup
@@ -143,13 +138,19 @@ Usage/Development
 
 Set the `CONFIG_PATH` environment variable to the path containing the service config and permission files when starting this service (default: `config`).
 
+    export CONFIG_PATH=../qwc-docker/demo-config
+
+Overide configurations, if necessary:
+
+    export SOLR_SERVICE_URL=http://localhost:8983/solr/gdi/select
+
 Configure environment:
 
     echo FLASK_ENV=development >.flaskenv
 
 Start service:
 
-    SEARCH_ID_COL=id_in_class python server.py
+    python server.py
 
 Search base URL:
 
