@@ -30,7 +30,6 @@ class SearchGeomService():
         self.primary_key = config.get('search_id_col', 'id_in_class')
         self.attributes = []
         self.geometry_column = config.get('geometry_column', 'geom')
-        self.srid = int(config.get('search_geom_srid', '2056'))
 
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.
@@ -79,6 +78,7 @@ class SearchGeomService():
         sql = sql_text("""
             SELECT {columns},
                 ST_AsGeoJSON({geom}) AS json_geom,
+                ST_Srid({geom}) AS srid,
                 ST_Extent({geom}) OVER () AS bbox_
             FROM {table}
             {where_clause};
@@ -93,10 +93,12 @@ class SearchGeomService():
         features = []
         result = conn.execute(sql, **params)
 
+        srid = 4326
         bbox = None
         for row in result:
             # NOTE: feature CRS removed by marshalling
             features.append(self.feature_from_query(row))
+            srid = row['srid']
             bbox = row['bbox_']
 
         if bbox:
@@ -114,7 +116,7 @@ class SearchGeomService():
             'crs': {
                 'type': 'name',
                 'properties': {
-                    'name': 'urn:ogc:def:crs:EPSG::%d' % self.srid
+                    'name': 'urn:ogc:def:crs:EPSG::%d' % srid
                 }
             },
             'features': features,
@@ -173,12 +175,7 @@ class SearchGeomService():
             'geometry': json.loads(row['json_geom'] or 'null'),
             'properties': props
         }
-        # 'crs': {
-        #     'type': 'name',
-        #     'properties': {
-        #         'name': 'urn:ogc:def:crs:EPSG::%d' % self.srid
-        #     }
-        # }
+
 
 # Extract coords from bbox string like
 # BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
