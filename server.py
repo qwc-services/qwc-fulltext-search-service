@@ -77,8 +77,8 @@ jwt = jwt_manager(app, api)
 tenant_handler = TenantHandler(app.logger)
 
 
-def search_handler(identity):
-    tenant = tenant_handler.tenant(identity)
+def search_handler():
+    tenant = tenant_handler.tenant()
     handler = tenant_handler.handler('search', 'fts', tenant)
     if handler is None:
         handler = tenant_handler.register_handler(
@@ -86,8 +86,8 @@ def search_handler(identity):
     return handler
 
 
-def search_geom_handler(identity):
-    tenant = tenant_handler.tenant(identity)
+def search_geom_handler():
+    tenant = tenant_handler.tenant()
     handler = tenant_handler.handler('search', 'geom', tenant)
     if handler is None:
         handler = tenant_handler.register_handler(
@@ -122,7 +122,7 @@ class SearchResult(Resource):
         # remove empty strings
         filter = [s for s in filter if len(s) > 0]
 
-        handler = search_handler(get_jwt_identity())
+        handler = search_handler()
         result = handler.search(get_jwt_identity(), searchtext, filter, limit)
 
         return result
@@ -144,7 +144,7 @@ class GeomResult(Resource):
         The matching features are returned as GeoJSON FeatureCollection.
         """
         filterexpr = request.args.get('filter')
-        handler = search_geom_handler(get_jwt_identity())
+        handler = search_geom_handler()
         result = handler.query(
           get_jwt_identity(), dataset, filterexpr)
         if 'error' not in result:
