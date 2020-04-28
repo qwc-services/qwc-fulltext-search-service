@@ -133,6 +133,10 @@ e.g. with `sudo rm -rf volumes/solr/data/*`
     curl 'http://localhost:8983/solr/gdi/dih_metadata?command=status'
     curl 'http://localhost:8983/solr/gdi/select?q=search_1_stem:qwc_demo'
 
+If you encounter permission problems with the solr service then try the following commnad:
+
+    chown 8983:8983 volumes/solr/data
+
 Usage/Development
 -----------------
 
