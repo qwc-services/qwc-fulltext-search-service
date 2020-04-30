@@ -24,7 +24,7 @@ class SearchGeomService():
         config = config_handler.tenant_config(tenant)
         self.resources = self.load_resources(config)
         self.db_engine = DatabaseEngine()
-        self.db = self.db_engine.db_engine(config.get('geodb_url'))
+        self.db = self.db_engine.db_engine(config.get('db_url'))
 
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.
