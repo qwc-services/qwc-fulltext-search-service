@@ -24,11 +24,6 @@
           "description": "SOLR service URL",
           "type": "string"
         },
-        "search_id_col": {
-          "description": "ID column name of search view",
-          "type": "string",
-          "default": "id_in_class"
-        },
         "word_split_re": {
           "description": "Word split Regex",
           "type": "string",
@@ -39,29 +34,13 @@
           "type": "integer",
           "default": 50
         },
-        "geodb_url": {
-          "description": "DB connection for search geometries view",
+        "db_url": {
+          "description": "DB connection for geometry result query",
           "type": "string"
-        },
-        "search_view_name": {
-          "description": "View for search geometries",
-          "type": "string",
-          "default": "search_v"
-        },
-        "geometry_column": {
-          "description": "Geometry column for search geometries view",
-          "type": "string",
-          "default": "geom"
-        },
-        "search_geom_srid": {
-          "description": "SRID for search geometries view",
-          "type": "integer"
         }
       },
       "required": [
-        "solr_service_url",
-        "geodb_url",
-        "search_geom_srid"
+        "solr_service_url"
       ]
     },
     "resources": {
@@ -76,10 +55,26 @@
             "type": "object",
             "properties": {
               "name": {
+                "description": "Facet name",
                 "type": "string"
               },
               "filter_word": {
                 "type": "string"
+              },
+              "table_name": {
+                "description": "Table/View for search result geometries",
+                "type": "string",
+                "default": "search_v"
+              },
+              "geometry_column": {
+                "description": "Geometry column in search result table",
+                "type": "string",
+                "default": "geom"
+              },
+              "facet_column": {
+                "description": "Facet name column in search result table",
+                "type": "string",
+                "default": "subclass"
               }
             },
             "required": [
