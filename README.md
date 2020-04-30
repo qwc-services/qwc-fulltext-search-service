@@ -8,7 +8,6 @@ Dependencies
 ------------
 
 * Solr search service
-* Config service (`CONFIG_SERVICE_URL`)
 
 
 Configuration
@@ -31,7 +30,7 @@ Example:
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
     "word_split_re": "[\\s,.:;\"]+",
     "search_result_limit": 50,
-    "geodb_url": "postgresql:///?service=qwc_geodb"
+    "db_url": "postgresql:///?service=qwc_geodb"
   },
   "resources": {
     "facets": [
@@ -57,11 +56,13 @@ Example:
 
 ### Permissions
 
+* [JSON schema](https://github.com/qwc-services/qwc-services-core/blob/master/schemas/qwc-services-permissions.json)
 * File location: `$CONFIG_PATH/<tenant>/permissions.json`
 
 Example:
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/qwc-services/qwc-services-core/master/schemas/qwc-services-permissions.json",
   "users": [
     {
       "name": "demo",
@@ -108,7 +109,7 @@ Config options in the config file can be overridden by equivalent uppercase envi
 | SOLR_SERVICE_URL        | SOLR service URL                            | `http://localhost:8983/solr/gdi/select` |
 | WORD_SPLIT_RE           | Word split Regex                            | `[\s,.:;"]+`                            |
 | SEARCH_RESULT_LIMIT     | Result count limit per search               | `50`                                    |
-| GEODB_URL               | DB connection for search geometries view    |                                         |
+| DB_URL                  | DB connection for search geometries view    |                                         |
 
 
 Solr Setup
