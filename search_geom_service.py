@@ -43,11 +43,12 @@ class SearchGeomService():
                     'error': "Invalid filter expression: " + filterexpr[1],
                     'error_code': 400
                 }
-            facet_column = resource_cfg[0].get('facet_column', 'subclass')
-            # Append dataset where clause
-            sql = " AND ".join([filterexpr[0], "%s=:vs" % facet_column])
-            filterexpr[1]["vs"] = dataset
-            filterexpr = (sql, filterexpr[1])
+            facet_column = resource_cfg[0].get('facet_column')
+            # Append dataset where clause for search view
+            if facet_column:
+                sql = " AND ".join([filterexpr[0], "%s=:vs" % facet_column])
+                filterexpr[1]["vs"] = dataset
+                filterexpr = (sql, filterexpr[1])
 
             feature_collection = self.index(filterexpr, resource_cfg[0])
             return {'feature_collection': feature_collection}
