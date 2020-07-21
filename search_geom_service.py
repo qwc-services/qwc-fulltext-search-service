@@ -26,6 +26,9 @@ class SearchGeomService():
         self.db_engine = DatabaseEngine()
         self.db = self.db_engine.db_engine(config.get('db_url'))
 
+        # Column for feature ID. If unset, field from filterexpr is used
+        self.primary_key = config.get('search_id_col')
+
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.
 
@@ -143,7 +146,8 @@ class SearchGeomService():
         column_name = expr[0]
         if type(column_name) is not str:
             return (None, "Invalid column name")
-        self.primary_key = column_name  # 'id_in_class'
+        if self.primary_key is None:
+            self.primary_key = column_name
 
         op = expr[1].upper().strip()
         if type(expr[1]) is not str or not op in ["="]:
