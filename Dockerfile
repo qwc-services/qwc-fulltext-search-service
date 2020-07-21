@@ -10,4 +10,7 @@ RUN apk add --no-cache --update postgresql-dev gcc python3-dev musl-dev
 # maybe set locale here if needed
 
 ADD . /srv/qwc_service
+# Workaround for "ImportError: cannot import name 'PackageFinder'"
+RUN wget https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py pip
 RUN pip3 install --no-cache-dir -r /srv/qwc_service/requirements.txt
