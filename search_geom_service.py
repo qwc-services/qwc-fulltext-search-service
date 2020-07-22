@@ -26,9 +26,6 @@ class SearchGeomService():
         self.db_engine = DatabaseEngine()
         self.db = self.db_engine.db_engine(config.get('db_url'))
 
-        # Column for feature ID. If unset, field from filterexpr is used
-        self.primary_key = config.get('search_id_col')
-
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.
 
@@ -39,6 +36,8 @@ class SearchGeomService():
         resource_cfg = self.resources['facets'].get(dataset)  # TODO: check permissions
         if resource_cfg is not None and len(resource_cfg) == 1 \
                 and filterexpr is not None:
+            # Column for feature ID. If unset, field from filterexpr is used
+            self.primary_key = resource_cfg[0].get('search_id_col')
             # parse and validate input filter
             filterexpr = self.parse_filter(filterexpr)
             if filterexpr[0] is None:
@@ -65,6 +64,7 @@ class SearchGeomService():
         """
         table_name = cfg.get('table_name', 'search_v')
         geometry_column = cfg.get('geometry_column', 'geom')
+
         # build query SQL
 
         # select id
