@@ -200,4 +200,4 @@ class SearchGeomService():
 
 # Extract coords from bbox string like
 # BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
-BBOX_RE = re.compile("^BOX\((\d+(\.\d+)?) (\d+(\.\d+)?),(\d+(\.\d+)?) (\d+(\.\d+)?)\)$")
+BBOX_RE = re.compile(r'^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$')
