@@ -120,7 +120,10 @@ class SearchGeomService():
             'crs': {
                 'type': 'name',
                 'properties': {
-                    'name': 'urn:ogc:def:crs:EPSG::%d' % srid
+                    # NOTE: return CRS name as EPSG:xxxx and not as OGC URN
+                    #       to work with QWC2 dataset search
+                    'name': 'EPSG:%d' % srid
+                    # 'name': 'urn:ogc:def:crs:EPSG::%d' % srid
                 }
             },
             'features': features,
