@@ -48,7 +48,7 @@ class SearchGeomService():
             facet_column = resource_cfg[0].get('facet_column')
             # Append dataset where clause for search view
             if facet_column:
-                sql = " AND ".join([filterexpr[0], "%s=:vs" % facet_column])
+                sql = " AND ".join([filterexpr[0], '"%s"=:vs' % facet_column])
                 filterexpr[1]["vs"] = dataset
                 filterexpr = (sql, filterexpr[1])
 
@@ -68,7 +68,9 @@ class SearchGeomService():
         # build query SQL
 
         # select id
-        columns = (', ').join([self.primary_key])
+        columns = ', '.join(['"%s"' % self.primary_key])
+        quoted_table = '.'.join(
+            map(lambda s: '"%s"' % s, table_name.split('.')))
 
         where_clauses = []
         params = {}
@@ -77,17 +79,18 @@ class SearchGeomService():
             where_clauses.append(filterexpr[0])
             params.update(filterexpr[1])
 
-        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        where_clause = "WHERE " + " AND ".join(
+            where_clauses) if where_clauses else ""
 
         sql = sql_text("""
             SELECT {columns},
-                ST_AsGeoJSON({geom}) AS json_geom,
-                ST_Srid({geom}) AS srid,
-                ST_Extent({geom}) OVER () AS bbox_
+                ST_AsGeoJSON("{geom}") AS json_geom,
+                ST_Srid("{geom}") AS srid,
+                ST_Extent("{geom}") OVER () AS bbox_
             FROM {table}
-            {where_clause};
+            {where_clause}
         """.format(columns=columns, geom=geometry_column,
-                   table=table_name, where_clause=where_clause))
+                   table=quoted_table, where_clause=where_clause))
 
         # connect to database and start transaction (for read-only access)
         conn = self.db.connect()
@@ -160,7 +163,7 @@ class SearchGeomService():
         if not type(value) in [int, float, str]:
             return (None, "Invalid value")
 
-        sql.append("%s %s :v%d" % (column_name, op, i))
+        sql.append('"%s" %s :v%d' % (column_name, op, i))
 
         params["v%d" % i] = value
 
