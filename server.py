@@ -1,10 +1,9 @@
 from flask import Flask, Request as RequestBase, request, jsonify
 from flask_restx import Api, Resource, fields, reqparse
-from flask_jwt_extended import JWTManager, jwt_optional, get_jwt_identity
 from werkzeug.exceptions import BadRequest
 
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
-from qwc_services_core.jwt import jwt_manager
+from qwc_services_core.auth import auth_manager, optional_auth, get_auth_user
 from qwc_services_core.tenant_handler import TenantHandler
 from search_service import SolrClient  # noqa: E402
 from search_geom_service import SearchGeomService  # noqa: E402
@@ -70,8 +69,7 @@ app.config.SWAGGER_UI_DOC_EXPANSION = 'list'
 # disable verbose 404 error message
 app.config['ERROR_404_HELP'] = False
 
-# Setup the Flask-JWT-Extended extension
-jwt = jwt_manager(app, api)
+auth = auth_manager(app, api)
 
 tenant_handler = TenantHandler(app.logger)
 
@@ -101,7 +99,7 @@ class SearchResult(Resource):
     @api.param('searchtext', 'Search string with optional filter prefix')
     @api.param('filter', 'Comma separated list of dataproduct identifiers and keyword "dataproduct"')
     @api.param('limit', 'Max number of results')
-    @jwt_optional
+    @optional_auth
     def get(self):
         """Search for searchtext and return the results
         """
@@ -122,7 +120,7 @@ class SearchResult(Resource):
         filter = [s for s in filter if len(s) > 0]
 
         handler = search_handler()
-        result = handler.search(get_jwt_identity(), searchtext, filter, limit)
+        result = handler.search(get_auth_user(), searchtext, filter, limit)
 
         return result
 
@@ -134,7 +132,7 @@ class SearchResult(Resource):
 class GeomResult(Resource):
     @api.doc('geom')
     @api.param('filter', 'JSON serialized array of filter expressions: `[["attr", "op", "value"], "and/or", ["attr", "op", "value"]]`')
-    @jwt_optional
+    @optional_auth
     def get(self, dataset):
         """Get dataset geometries
 
@@ -145,7 +143,7 @@ class GeomResult(Resource):
         filterexpr = request.args.get('filter')
         handler = search_geom_handler()
         result = handler.query(
-          get_jwt_identity(), dataset, filterexpr)
+          get_auth_user(), dataset, filterexpr)
         if 'error' not in result:
             return result['feature_collection']
         else:
