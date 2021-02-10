@@ -154,8 +154,6 @@ class SearchGeomService():
             return (None, "Invalid column name")
         if self.primary_key is None:
             self.primary_key = column_name
-        else:
-            column_name = self.primary_key
 
         op = expr[1].upper().strip()
         if type(expr[1]) is not str or not op in ["="]:
