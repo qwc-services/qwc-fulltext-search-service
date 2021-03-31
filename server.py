@@ -11,6 +11,14 @@ from search_geom_service import SearchGeomService  # noqa: E402
 # Flask application
 app = Flask(__name__)
 
+
+# Root route must be before Api initialization
+@app.route("/")
+def search():
+    res = SearchResult(api)
+    return res.get()
+
+
 api = Api(app, version='1.0', title='Fulltext Search service API',
           description="""API for QWC Fulltext Search service.
 
@@ -92,8 +100,7 @@ def search_geom_handler():
     return handler
 
 
-# base route (should be '/', but doesn't work with flask_restplus)
-@api.route('/fts/')
+@api.route('/fts/', '/')
 class SearchResult(Resource):
     @api.doc('search')
     @api.param('searchtext', 'Search string with optional filter prefix')
