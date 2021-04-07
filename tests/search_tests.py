@@ -1,12 +1,14 @@
 import unittest
 from search_service import SolrClient
 
+import server
+
 
 class SearchTestCase(unittest.TestCase):
     """Test case for search function"""
 
     def setUp(self):
-        self.search = SolrClient(None)
+        self.search = SolrClient("default", server.app.logger)
 
     def tearDown(self):
         pass
