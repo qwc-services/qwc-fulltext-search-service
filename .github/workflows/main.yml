@@ -19,6 +19,8 @@ jobs:
         run: |
           cd qwc-docker
           sed -i 's|qwc-solr:|localhost:|' demo-config/default/searchConfig.json
+          # This is needed, because solr generates files and needs permissions to store them
+          # in volumes/solr/*
           chmod 777 -R volumes/solr/
           docker-compose -f docker-compose-example.yml up -d qwc-solr
 
