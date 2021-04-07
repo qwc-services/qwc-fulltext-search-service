@@ -28,9 +28,9 @@ class ApiTestCase(unittest.TestCase):
         response.
         """
         response = self.app.get(url, headers=self.jwtHeader())
-        return response.status_code, json.loads(response.data)
+        return response.status_code, response.data
 
     def test_search_text(self):
         status_code, json_data = self.get(
-            '/search?filter=dataproduct&searchtext=wasser')
+            '/fts/?filter=dataproduct&searchtext=wasser')
         self.assertEqual(200, status_code, "Status code is not OK")
