@@ -22,12 +22,12 @@ class SearchGeomService():
 
         config_handler = RuntimeConfig("search", logger)
         config = config_handler.tenant_config(tenant)
-        self.resources = self.__load_resources(config)
+        self.resources = self._load_resources(config)
         self.db_engine = DatabaseEngine()
         self.dbs = {}   # db connections with db_url as key
         self.default_db_url = config.get('db_url')
 
-    def __get_db(self, cfg):
+    def _get_db(self, cfg):
         db_url = cfg.get('db_url', self.default_db_url)
         if db_url not in self.dbs:
             self.dbs[db_url] = self.db_engine.db_engine(db_url)
@@ -46,7 +46,7 @@ class SearchGeomService():
             # Column for feature ID. If unset, field from filterexpr is used
             self.primary_key = resource_cfg[0].get('search_id_col')
             # parse and validate input filter
-            filterexpr = self.parse_filter(filterexpr)
+            filterexpr = self._parse_filter(filterexpr)
             if filterexpr[0] is None:
                 return {
                     'error': "Invalid filter expression: " + filterexpr[1],
@@ -59,17 +59,17 @@ class SearchGeomService():
                 filterexpr[1]["vs"] = dataset
                 filterexpr = (sql, filterexpr[1])
 
-            feature_collection = self.index(filterexpr, resource_cfg[0])
+            feature_collection = self._index(filterexpr, resource_cfg[0])
             return {'feature_collection': feature_collection}
         else:
             return {'error': "Dataset not found or permission error"}
 
-    def index(self, filterexpr, cfg):
+    def _index(self, filterexpr, cfg):
         """Find features by filter query.
 
         :param (sql, params) filterexpr: A filter expression as a tuple (sql_expr, bind_params)
         """
-        db = self.__get_db(cfg)
+        db = self._get_db(cfg)
         table_name = cfg.get('table_name', 'search_v')
         geometry_column = cfg.get('geometry_column', 'geom')
 
@@ -112,7 +112,7 @@ class SearchGeomService():
         bbox = None
         for row in result:
             # NOTE: feature CRS removed by marshalling
-            features.append(self.feature_from_query(row))
+            features.append(self._feature_from_query(row))
             srid = row['srid']
             bbox = row['bbox_']
 
@@ -141,7 +141,7 @@ class SearchGeomService():
             'bbox': bbox
         }
 
-    def parse_filter(self, filterstr):
+    def _parse_filter(self, filterstr):
         """Parse and validate a filter expression and return a tuple (sql_expr, bind_params).
 
         :param str filterstr: JSON serialized array of filter expressions: [["<attr>", "=", "<value>"]]
@@ -180,7 +180,7 @@ class SearchGeomService():
         else:
             return ("(%s)" % " ".join(sql), params)
 
-    def feature_from_query(self, row):
+    def _feature_from_query(self, row):
         """Build GeoJSON Feature from query result row.
 
         :param obj row: Row result from query
@@ -192,7 +192,7 @@ class SearchGeomService():
             'properties': {}
         }
 
-    def __load_resources(self, config):
+    def _load_resources(self, config):
         """Load service resources from config.
 
         :param RuntimeConfig config: Config handler
