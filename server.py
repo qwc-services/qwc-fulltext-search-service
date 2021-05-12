@@ -110,7 +110,9 @@ class SearchResult(Resource):
     def get(self):
         """Search for searchtext and return the results
         """
-        searchtext = request.args.get('searchtext', None)
+        searchtext = request.args.get('searchtext')
+        if not searchtext:
+            return {'error': "Missing search string"}
         filter_param = request.args.get('filter', "")
         limit = request.args.get('limit', None)
         try:

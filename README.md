@@ -173,7 +173,7 @@ Examples:
     curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=austr'
     curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
 
-    curl -g 'http://localhost:5011/geom/ne_10m_admin_0_countries/?filter=[["id_in_class","=",90]]'
+    curl -g 'http://localhost:5011/geom/ne_10m_admin_0_countries/?filter=[["ogc_fid","=",90]]'
 
 
 Docker usage

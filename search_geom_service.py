@@ -22,9 +22,16 @@ class SearchGeomService():
 
         config_handler = RuntimeConfig("search", logger)
         config = config_handler.tenant_config(tenant)
-        self.resources = self.load_resources(config)
+        self.resources = self.__load_resources(config)
         self.db_engine = DatabaseEngine()
-        self.db = self.db_engine.db_engine(config.get('db_url'))
+        self.dbs = {}   # db connections with db_url as key
+        self.default_db_url = config.get('db_url')
+
+    def __get_db(self, cfg):
+        db_url = cfg.get('db_url', self.default_db_url)
+        if db_url not in self.dbs:
+            self.dbs[db_url] = self.db_engine.db_engine(db_url)
+        return self.dbs[db_url]
 
     def query(self, identity, dataset, filterexpr):
         """Find dataset features inside bounding box.
@@ -62,6 +69,7 @@ class SearchGeomService():
 
         :param (sql, params) filterexpr: A filter expression as a tuple (sql_expr, bind_params)
         """
+        db = self.__get_db(cfg)
         table_name = cfg.get('table_name', 'search_v')
         geometry_column = cfg.get('geometry_column', 'geom')
 
@@ -93,7 +101,7 @@ class SearchGeomService():
                    table=quoted_table, where_clause=where_clause))
 
         # connect to database and start transaction (for read-only access)
-        conn = self.db.connect()
+        conn = db.connect()
         trans = conn.begin()
 
         # execute query
@@ -184,7 +192,7 @@ class SearchGeomService():
             'properties': {}
         }
 
-    def load_resources(self, config):
+    def __load_resources(self, config):
         """Load service resources from config.
 
         :param RuntimeConfig config: Config handler

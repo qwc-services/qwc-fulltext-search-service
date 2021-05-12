@@ -35,7 +35,7 @@
           "default": 50
         },
         "db_url": {
-          "description": "DB connection for geometry result query",
+          "description": "Default DB connection for geometry result query",
           "type": "string"
         }
       },
@@ -75,6 +75,10 @@
                 "description": "Facet name column in search result table",
                 "type": "string",
                 "default": "subclass"
+              },
+              "db_url": {
+                "description": "DB connection for geometry result query",
+                "type": "string"
               }
             },
             "required": [
