@@ -92,7 +92,7 @@ class SearchGeomService():
 
         sql = sql_text("""
             SELECT {columns},
-                ST_AsGeoJSON("{geom}") AS json_geom,
+                ST_AsGeoJSON(ST_CurveToLine("{geom}")) AS json_geom,
                 ST_Srid("{geom}") AS srid,
                 ST_Extent("{geom}") OVER () AS bbox_
             FROM {table}
