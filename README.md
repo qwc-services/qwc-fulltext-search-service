@@ -1,5 +1,5 @@
 [![Actions](https://github.com/qwc-services/qwc-fulltext-search-service/workflows/build/badge.svg)](https://github.com/qwc-services/qwc-fulltext-search-service/actions)
-[![Docker](https://img.shields.io/docker/pulls/sourcepole/qwc-fulltext-search-service)](https://hub.docker.com/r/sourcepole/qwc-fulltext-search-service)
+[![docker](https://img.shields.io/docker/v/sourcepole/qwc-fulltext-search-service?label=Docker%20image&sort=semver)](https://hub.docker.com/r/sourcepole/qwc-fulltext-search-service)
 
 QWC Fulltext Search Service
 ===========================
