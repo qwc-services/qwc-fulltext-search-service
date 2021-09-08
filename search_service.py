@@ -81,7 +81,7 @@ class SolrClient:
         response = requests.get(
             self.solr_service_url,
             params="omitHeader=true&facet=true&facet.field=facet&rows={}"
-                   "&sort=score desc,sort desc&{}&{}".format(limit, q, fq),
+                   "&sort=score desc,sort asc&{}&{}".format(limit, q, fq),
             timeout=10)
         self.logger.debug("Sending Solr query %s" % response.url)
         self.logger.info("Search words: %s", ','.join(tokens))
