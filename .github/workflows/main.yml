@@ -18,7 +18,7 @@ jobs:
       - name: Start required services
         run: |
           cd qwc-docker
-          sed -i 's|qwc-solr:|localhost:|' demo-config/default/searchConfig.json
+          sed -i 's|qwc-solr:|localhost:|' volumes/config/default/searchConfig.json
           # This is needed, because solr generates files and needs permissions to store them
           # in volumes/solr/*
           chmod 777 -R volumes/solr/
@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          CONFIG_PATH=$PWD/qwc-docker/demo-config/ python test.py
+          CONFIG_PATH=$PWD/qwc-docker/volumes/config/ python test.py
 
     build:
       needs: test
