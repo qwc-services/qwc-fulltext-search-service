@@ -1,16 +1,16 @@
-# WSGI service environment
-
 FROM sourcepole/qwc-uwsgi-base:alpine-v2022.01.26
 
-# Required for pip with git repos
-RUN apk add --no-cache --update git
-# Required for psychopg, --> https://github.com/psycopg/psycopg2/issues/684
-RUN apk add --no-cache --update postgresql-dev gcc python3-dev musl-dev
-
-# maybe set locale here if needed
-
 ADD . /srv/qwc_service
-# Workaround for "ImportError: cannot import name 'PackageFinder'"
-RUN wget https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py pip
-RUN pip3 install --no-cache-dir -r /srv/qwc_service/requirements.txt
+
+# git: Required for pip with git repos
+# postgresql-dev g++ python3-dev: Required for psycopg2-binary
+# get-pip: Workaround for "ImportError: cannot import name 'PackageFinder'"
+RUN \
+    apk add --no-cache --update --virtual runtime-deps postgresql-libs && \
+    apk add --no-cache --update --virtual build-deps git postgresql-dev g++ python3-dev wget && \
+    wget https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py pip && \
+    pip3 install --no-cache-dir -r /srv/qwc_service/requirements.txt && \
+    apk del build-deps
+
+ENV SERVICE_MOUNTPOINT=/api/v2/search
