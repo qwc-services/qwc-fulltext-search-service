@@ -1,11 +1,13 @@
 import re
+import os
 import requests
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
 from flask import json, request
 
 
-FILTERWORD_RE = re.compile("^([\w.]+):\b*")
+FILTERWORD_CHARS = os.environ.get('FILTERWORD_CHARS', '\w.')
+FILTERWORD_RE = re.compile(f'^([{FILTERWORD_CHARS}]+):\b*')
 
 QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',
                '(search_2_stem:"{0}"^4 OR search_2_ngram:"{0}"^3)',
