@@ -2,6 +2,7 @@ from collections import OrderedDict
 import os
 import re
 from flask import json
+from uuid import UUID
 from sqlalchemy.sql import text as sql_text
 from qwc_services_core.runtime_config import RuntimeConfig
 from qwc_services_core.database import DatabaseEngine
@@ -185,9 +186,14 @@ class SearchGeomService():
 
         :param obj row: Row result from query
         """
+        pk = row[self.primary_key]
+        # Ensure UUID primary key is JSON serializable
+        if isinstance(pk, UUID):
+            pk = str(pk)
+
         return {
             'type': 'Feature',
-            'id': row[self.primary_key],
+            'id': pk,
             'geometry': json.loads(row['json_geom'] or 'null'),
             'properties': {}
         }
