@@ -34,9 +34,8 @@ class SolrClient:
         self.word_split_re = re.compile(
             config.get('word_split_re', r'[\s,.:;"]+')
         )
-        self.solr_parameters = config.get(
-            'solr_parameters', 'omitHeader=true&facet=true&facet.field=facet&sort=score desc,sort asc')
         self.default_search_limit = config.get('search_result_limit', 50)
+        self.search_result_sort = config.get('search_result_sort', 'score desc, sort asc')
 
         self.resources = self.load_resources(config)
         self.permissions_handler = PermissionsReader(tenant, logger)
@@ -84,7 +83,8 @@ class SolrClient:
                                    search_permissions)
         response = requests.get(
             self.solr_service_url,
-            params=self.solr_parameters + "&rows={}&{}&{}".format(limit, q, fq),
+            params="omitHeader=true&facet=true&facet.field=facet&sort=" +
+                   self.search_result_sort + "&rows={}&{}&{}".format(limit, q, fq),
             timeout=10)
         self.logger.debug("Sending Solr query %s" % response.url)
         self.logger.info("Search words: %s", ','.join(tokens))
