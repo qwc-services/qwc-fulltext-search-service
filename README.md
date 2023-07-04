@@ -33,7 +33,8 @@ Example:
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
     "word_split_re": "[\\s,.:;\"]+",
     "search_result_limit": 50,
-    "db_url": "postgresql:///?service=qwc_geodb"
+    "db_url": "postgresql:///?service=qwc_geodb",
+    "solr_parameters": "omitHeader=true&facet=true&facet.field=facet&sort=score desc,sort asc"
   },
   "resources": {
     "facets": [
@@ -107,12 +108,13 @@ Example:
 
 Config options in the config file can be overridden by equivalent uppercase environment variables.
 
-| Variable                | Description                                 | Default value                           |
-|-------------------------|---------------------------------------------|-----------------------------------------|
-| SOLR_SERVICE_URL        | SOLR service URL                            | `http://localhost:8983/solr/gdi/select` |
-| WORD_SPLIT_RE           | Word split Regex                            | `[\s,.:;"]+`                            |
-| SEARCH_RESULT_LIMIT     | Result count limit per search               | `50`                                    |
-| DB_URL                  | DB connection for search geometries view    |                                         |
+| Variable            | Description                              | Default value                                                           |
+|---------------------|------------------------------------------|-------------------------------------------------------------------------|
+| SOLR_SERVICE_URL    | SOLR service URL                         | `http://localhost:8983/solr/gdi/select`                                 |
+| WORD_SPLIT_RE       | Word split Regex                         | `[\s,.:;"]+`                                                            |
+| SEARCH_RESULT_LIMIT | Result count limit per search            | `50`                                                                    |
+| DB_URL              | DB connection for search geometries view |                                                                         |
+| SOLR_PARAMETERS     | URL parameters for solr search           | `omitHeader=true&facet=true&facet.field=facet&sort=score desc,sort asc` |
 
 
 Solr Setup
