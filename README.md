@@ -33,6 +33,7 @@ Example:
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
     "word_split_re": "[\\s,.:;\"]+",
     "search_result_limit": 50,
+    "search_result_sort": "score desc, sort asc",
     "db_url": "postgresql:///?service=qwc_geodb"
   },
   "resources": {
@@ -107,12 +108,14 @@ Example:
 
 Config options in the config file can be overridden by equivalent uppercase environment variables.
 
-| Variable                | Description                                 | Default value                           |
-|-------------------------|---------------------------------------------|-----------------------------------------|
-| SOLR_SERVICE_URL        | SOLR service URL                            | `http://localhost:8983/solr/gdi/select` |
-| WORD_SPLIT_RE           | Word split Regex                            | `[\s,.:;"]+`                            |
-| SEARCH_RESULT_LIMIT     | Result count limit per search               | `50`                                    |
-| DB_URL                  | DB connection for search geometries view    |                                         |
+| Variable            | Description                              | Default value                           |
+|---------------------|------------------------------------------|-----------------------------------------|
+| SOLR_SERVICE_URL    | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
+| WORD_SPLIT_RE       | Word split Regex                         | `[\s,.:;"]+`                            |
+| SEARCH_RESULT_LIMIT | Result count limit per search            | `50`                                    |
+| SEARCH_RESULT_SORT  | Sorting of search results                | `score desc, sort asc`                  |
+| DB_URL              | DB connection for search geometries view |                                         |
+
 
 
 Solr Setup
