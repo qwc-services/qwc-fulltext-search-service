@@ -185,6 +185,7 @@ class SolrClient:
         idfield_meta = json.loads(doc['idfield_meta'])
         idfield_str = idfield_meta[1].split(':')[1] == 'y'
         bbox = json.loads(doc['bbox']) if 'bbox' in doc else None
+        srid = doc.get('srid', None)
 
         facet = id[0]  # Solr index uses dataset id as facet
         feature_id = id[1]
@@ -197,17 +198,17 @@ class SolrClient:
 
         if '*' in search_permissions:
                 return self._feature_rec(
-                    doc, idfield_meta, facet, feature_id, idfield_str, bbox)
+                    doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid)
 
         # Return only permitted facets
         for entry in search_permissions.get(facet, []):
             if self.check_filterword(filterword, entry):
                 return self._feature_rec(
-                    doc, idfield_meta, facet, feature_id, idfield_str, bbox)
+                    doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid)
         return {}
 
     def _feature_rec(self, doc, idfield_meta, facet, feature_id,
-                     idfield_str, bbox):
+                     idfield_str, bbox, srid):
         id_field_name = idfield_meta[0]
         feature = {
             'display': doc['display'],
@@ -215,7 +216,8 @@ class SolrClient:
             'feature_id': feature_id,
             'id_field_name': id_field_name,
             'id_field_type': idfield_str,
-            'bbox': bbox
+            'bbox': bbox,
+            'srid': srid
         }
         return {'feature': feature}
 

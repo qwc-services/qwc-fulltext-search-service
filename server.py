@@ -35,7 +35,8 @@ Faceted fulltext search API.
             "id_field_type": <bool>,           /* True: String type, False: Non-String type */
             "feature_id": "<string>",          /* Value of feature ID column, e.g. 13275442 */
             "display": "<string>",             /* Text to display in search result list */
-            "bbox": "<string>"                 /* Bounding box of feature geomtry. e.g. [2600000,1200000,2600100,1200100] */
+            "bbox": "<string>",                /* Bounding box of feature geomtry. e.g. [2600000,1200000,2600100,1200100] */
+            "srid": "<string>"                 /* The bbox srid */
           }
         },
         {
