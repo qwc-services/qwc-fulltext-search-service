@@ -3,7 +3,7 @@ from flask_restx import Api, Resource, fields, reqparse
 from werkzeug.exceptions import BadRequest
 
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
-from qwc_services_core.auth import auth_manager, optional_auth, get_auth_user
+from qwc_services_core.auth import auth_manager, optional_auth, get_identity
 from qwc_services_core.tenant_handler import TenantHandler
 from search_service import SolrClient  # noqa: E402
 from search_geom_service import SearchGeomService  # noqa: E402
@@ -130,7 +130,7 @@ class SearchResult(Resource):
         filter = [s for s in filter if len(s) > 0]
 
         handler = search_handler()
-        result = handler.search(get_auth_user(), searchtext, filter, limit)
+        result = handler.search(get_identity(), searchtext, filter, limit)
 
         return result
 
@@ -153,7 +153,7 @@ class GeomResult(Resource):
         filterexpr = request.args.get('filter')
         handler = search_geom_handler()
         result = handler.query(
-          get_auth_user(), dataset, filterexpr)
+          get_identity(), dataset, filterexpr)
         if 'error' not in result:
             return result['feature_collection']
         else:
