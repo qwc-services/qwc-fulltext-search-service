@@ -107,7 +107,7 @@ class SearchGeomService():
 
         # execute query
         features = []
-        result = conn.execute(sql, **params)
+        result = conn.execute(sql, params).mappings()
 
         srid = 4326
         bbox = None
