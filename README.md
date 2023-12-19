@@ -161,7 +161,7 @@ Configure environment:
 
 Start service:
 
-    python server.py
+    python src/server.py
 
 Search base URL:
 
