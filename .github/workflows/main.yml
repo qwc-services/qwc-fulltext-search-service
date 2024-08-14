@@ -23,6 +23,7 @@ jobs:
           # in volumes/solr/*
           chmod 777 -R volumes/solr/
           docker compose -f docker-compose-example.yml up -d qwc-solr
+          docker compose -f docker-compose-example.yml up -d qwc-postgis
 
       - name: Setting up Python
         uses: actions/setup-python@v5
