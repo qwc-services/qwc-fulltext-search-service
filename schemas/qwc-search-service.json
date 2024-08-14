@@ -20,9 +20,29 @@
       "title": "Config options",
       "type": "object",
       "properties": {
+        "search_backend": {
+          "description": "Search backend: solr or trgm. Default: solr.",
+          "type": "string"
+        },
         "solr_service_url": {
           "description": "SOLR service URL",
           "type": "string"
+        },
+        "search_result_sort": {
+          "description": "Search result ordering for solr search results. Default: search_result_sort",
+          "type": "string"
+        },
+        "trgm_feature_query": {
+          "description": "Trigram feature query SQL. You can use the placeholder parameters `:term` (full search string), `:terms` (list of words of the search string) and `:thres` (similarity threshold). The query must return the columns display, facet_id, id_field_name, feature_id, bbox (as a `[xmin,ymin,xmax,ymax]` string), srid.",
+          "type": "string"
+        },
+        "trgm_layer_query": {
+          "description": "Trigram layer query SQL. You can use the placeholder parameters `:term` (full search string), `:terms` (list of words of the search string) and `:thres` (similarity threshold). The query must return the columns display, dataproduct_id, dset_info, sublayers.",
+          "type": "string"
+        },
+        "trgm_similarity_threshold": {
+          "description": "Trigram similarity treshold. Default: 0.3",
+          "type": "number",
         },
         "word_split_re": {
           "description": "Word split Regex",
@@ -30,7 +50,7 @@
           "default": "[\\s,.:;\"]+"
         },
         "search_result_limit": {
-          "description": "Result count limit per search",
+          "rdescription": "Result count limit per search",
           "type": "integer",
           "default": 50
         },
@@ -40,7 +60,7 @@
         }
       },
       "required": [
-        "solr_service_url"
+        "db_url"
       ]
     },
     "resources": {

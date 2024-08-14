@@ -1,10 +1,10 @@
 import unittest
-from search_service import SolrClient
+from solr_search_service import SolrClient
 
 import server
 
 
-class SearchTestCase(unittest.TestCase):
+class SolrSearchTestCase(unittest.TestCase):
     """Test case for search function"""
 
     def setUp(self):

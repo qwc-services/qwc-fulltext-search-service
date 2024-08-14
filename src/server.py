@@ -4,8 +4,10 @@ from werkzeug.exceptions import BadRequest
 
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
 from qwc_services_core.auth import auth_manager, optional_auth, get_identity
+from qwc_services_core.runtime_config import RuntimeConfig
 from qwc_services_core.tenant_handler import TenantHandler
-from search_service import SolrClient  # noqa: E402
+from solr_search_service import SolrClient  # noqa: E402
+from trgm_search_service import TrgmClient  # noqa: E402
 from search_geom_service import SearchGeomService  # noqa: E402
 
 # Flask application
@@ -87,8 +89,19 @@ def search_handler():
     tenant = tenant_handler.tenant()
     handler = tenant_handler.handler('search', 'fts', tenant)
     if handler is None:
-        handler = tenant_handler.register_handler(
-            'fts', tenant, SolrClient(tenant, app.logger))
+        config_handler = RuntimeConfig("search", app.logger)
+        config = config_handler.tenant_config(tenant)
+        search_backend = config.get('search_backend')
+        if search_backend == 'trgm':
+          app.logger.debug("Using trgm search backend")
+          handler = tenant_handler.register_handler(
+              'fts', tenant, TrgmClient(tenant, app.logger))
+        else:
+          if search_backend and search_backend != "solr":
+            app.logger.warn("Unknown search backend specified: %s" % config.get('search_backend'))
+          app.logger.debug("Using solr search backend")
+          handler = tenant_handler.register_handler(
+              'fts', tenant, SolrClient(tenant, app.logger))
     return handler
 
 

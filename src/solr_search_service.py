@@ -6,7 +6,7 @@ from qwc_services_core.runtime_config import RuntimeConfig
 from flask import json, request
 
 
-FILTERWORD_CHARS = os.environ.get('FILTERWORD_CHARS', '\w.')
+FILTERWORD_CHARS = os.environ.get('FILTERWORD_CHARS', r'\w.')
 FILTERWORD_RE = re.compile(f'^([{FILTERWORD_CHARS}]+):\b*')
 
 QUERY_PARTS = ['(search_1_stem:"{0}"^6 OR search_1_ngram:"{0}"^5)',

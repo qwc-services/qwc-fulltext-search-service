@@ -1,0 +1,23 @@
+{
+  "$schema": "https://github.com/qwc-services/qwc-fulltext-search-service/raw/master/schemas/qwc-search-service.json",
+  "service": "search",
+  "config": {
+    "solr_service_url": "http://qwc-solr:8983/solr/gdi/select",
+    "search_result_limit": 50,
+    "db_url": "postgresql:///?service=qwc_geodb",
+    "search_backend": "trgm",
+    "trgm_similarity_threshold": 0.3,
+    "trgm_feature_query": "",
+    "trgm_layer_query": ""
+  },
+  "resources": {
+    "facets": [
+      {
+        "name": "test_dataset",
+        "filter_word": "Test",
+        "table_name": "public.test",
+        "geometry_column": "geom"
+      }
+    ]
+  }
+}

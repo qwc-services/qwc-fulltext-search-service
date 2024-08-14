@@ -4,14 +4,10 @@
 QWC Fulltext Search Service
 ===========================
 
-Faceted fulltext search and geometry retrieval for search results.
+Faceted fulltext search and geometry retrieval for search results, with two backend options:
 
-
-Dependencies
-------------
-
-* Solr search service
-
+- Apache Solr
+- Postgresql with Trigram extension
 
 Configuration
 -------------
@@ -30,10 +26,11 @@ Example:
   "$schema": "https://raw.githubusercontent.com/qwc-services/qwc-fulltext-search-service/master/schemas/qwc-search-service.json",
   "service": "search",
   "config": {
+    "search_backend": "solr",
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
+    "search_result_sort": "score desc, sort asc",
     "word_split_re": "[\\s,.:;\"]+",
     "search_result_limit": 50,
-    "search_result_sort": "score desc, sort asc",
     "db_url": "postgresql:///?service=qwc_geodb"
   },
   "resources": {
@@ -49,7 +46,7 @@ Example:
       {
         "name": "ne_10m_admin_0_countries",
         "filter_word": "Country",
-        "table_name": "qwc_geodb.search_v",
+        "table_name": "qwc_geodb.ne_10m_admin_0_countries",
         "geometry_column": "geom",
         "facet_column": "subclass"
       }
@@ -104,22 +101,13 @@ Example:
 }
 ```
 
-### Environment variables
+### Solr backend
 
-Config options in the config file can be overridden by equivalent uppercase environment variables.
+You can choose the solr backend by setting
 
-| Variable            | Description                              | Default value                           |
-|---------------------|------------------------------------------|-----------------------------------------|
-| SOLR_SERVICE_URL    | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
-| WORD_SPLIT_RE       | Word split Regex                         | `[\s,.:;"]+`                            |
-| SEARCH_RESULT_LIMIT | Result count limit per search            | `50`                                    |
-| SEARCH_RESULT_SORT  | Sorting of search results                | `score desc, sort asc`                  |
-| DB_URL              | DB connection for search geometries view |                                         |
+    "search_backend": "solr"
 
-
-
-Solr Setup
-----------
+in the search service config.
 
 Solr Administration User Interface: http://localhost:8983/solr/
 
@@ -140,9 +128,34 @@ e.g. with `sudo rm -rf volumes/solr/data/*`
     curl 'http://localhost:8983/solr/gdi/dih_metadata?command=status'
     curl 'http://localhost:8983/solr/gdi/select?q=search_1_stem:qwc_demo'
 
-If you encounter permission problems with the solr service then try the following commnad:
+If you encounter permission problems with the solr service then try the following command:
 
     chown 8983:8983 volumes/solr/data
+
+### Trgm backend
+
+You can choose the solr backend by setting
+
+    "search_backend": "trgm"
+
+and setting the `trgm_feature_query`, `trgm_layer_query`, `trgm_similarity_threshold` variables. See also the [Search chapter in the qwc-services documentation](https://qwc-services.github.io/master/topics/Search/#configuring-the-fulltext-search-service).
+
+### Environment variables
+
+Config options in the config file can be overridden by equivalent uppercase environment variables.
+
+| Variable            | Description                              | Default value                           |
+|---------------------|------------------------------------------|-----------------------------------------|
+| SEARCH_BACKEND      | Search backend                           | `solr`                                  |
+| SOLR_SERVICE_URL    | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
+| WORD_SPLIT_RE       | Word split Regex                         | `[\s,.:;"]+`                            |
+| SEARCH_RESULT_LIMIT | Result count limit per search            | `50`                                    |
+| SEARCH_RESULT_SORT  | Sorting of search results (solr backend) | `score desc, sort asc`                  |
+| DB_URL              | DB connection for search geometries view |                                         |
+| TRGM_FEATURE_QUERY  | Feature query SQL (trigram backend)      |                                         |
+| TRGM_LAYER_QUERY    | Layer query SQL (trigram backend)        |                                         |
+| TRGM_SIMILARITY_THRESHOLD | Trigram similarity treshold (trigram backend) | `0.3`                        |
+
 
 Usage/Development
 -----------------
@@ -178,30 +191,6 @@ Examples:
     curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
 
     curl -g 'http://localhost:5011/geom/ne_10m_admin_0_countries/?filter=[["ogc_fid","=",90]]'
-
-
-Docker usage
-------------
-
-To run this service you will need a running Solr search service.
-
-The following steps explain how to download the Solr search service docker image and how to run it with `docker-compose`.
-
-**Step 1: Clone qwc-docker**
-
-    git clone https://github.com/qwc-services/qwc-docker
-    cd qwc-docker
-
-**Step 2: Create docker-compose.yml file**
-
-    cp docker-compose-example.yml docker-compose.yml
-
-**Step 3: Start docker containers**
-
-    docker-compose up qwc-solr
-
-For more information please visit: https://github.com/qwc-services/qwc-docker
-
 
 Testing
 -------

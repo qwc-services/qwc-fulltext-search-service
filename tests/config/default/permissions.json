@@ -1,0 +1,17 @@
+{
+  "$schema": "https://github.com/qwc-services/qwc-services-core/raw/master/schemas/qwc-services-permissions.json",
+  "users": [
+  ],
+  "groups": [
+  ],
+  "roles": [
+    {
+      "role": "public",
+      "permissions": {
+        "solr_facets": [
+          "*"
+        ]
+      }
+    }
+  ]
+}
