@@ -59,9 +59,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "db_url"
-      ]
+      "required": []
     },
     "resources": {
       "title": "Resources",
