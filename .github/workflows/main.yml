@@ -19,6 +19,7 @@ jobs:
         run: |
           cd qwc-docker
           sed -i 's|qwc-solr:|localhost:|' volumes/config/default/searchConfig.json
+          sed -Ei "s|^(\s*POSTGRES_PASSWORD:).*$|\1 'waej7WuoOoth0wor'|" docker-compose-example.yml
           # This is needed, because solr generates files and needs permissions to store them
           # in volumes/solr/*
           chmod 777 -R volumes/solr/
