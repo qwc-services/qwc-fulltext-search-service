@@ -42,7 +42,7 @@
         },
         "trgm_similarity_threshold": {
           "description": "Trigram similarity treshold. Default: 0.3",
-          "type": "number",
+          "type": "number"
         },
         "word_split_re": {
           "description": "Word split Regex",
@@ -50,7 +50,7 @@
           "default": "[\\s,.:;\"]+"
         },
         "search_result_limit": {
-          "rdescription": "Result count limit per search",
+          "description": "Result count limit per search",
           "type": "integer",
           "default": 50
         },
