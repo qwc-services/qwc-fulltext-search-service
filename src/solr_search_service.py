@@ -43,6 +43,8 @@ class SolrClient:
     def search(self, identity, searchtext, filter, limit):
         search_permissions = self.search_permissions(identity)
         (filterword, tokens) = self.tokenize(searchtext)
+        if not tokens:
+            return {'results': [], 'result_counts': []}
         filter_ids = filter
         if not filter:
             # use all permitted facets if filter is empty

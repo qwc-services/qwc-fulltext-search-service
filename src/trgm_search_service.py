@@ -52,6 +52,8 @@ class TrgmClient:
 
     def search(self, identity, searchtext, filter, limit):
         (filterword, tokens) = self.tokenize(searchtext)
+        if not tokens:
+            return {'results': [], 'result_counts': [], 'layer_result_count': 0, 'feature_result_count': 0}
         if filterword:
             filter = [self.filterwords.get(filterword)]
 
