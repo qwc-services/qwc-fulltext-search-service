@@ -7,6 +7,7 @@ from qwc_services_core.database import DatabaseEngine
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
 from flask import json, request
+from jinja2 import Template
 from sqlalchemy.sql import text as sql_text
 
 
@@ -47,7 +48,9 @@ class TrgmClient:
         self.db_url = config.get('db_url')
         self.filter_word_query = config.get('trgm_filter_word_query')
         self.feature_query = config.get('trgm_feature_query')
+        self.feature_query_template = config.get('trgm_feature_query_template')
         self.layer_query = config.get('trgm_layer_query')
+        self.layer_query_template = config.get('trgm_layer_query_template')
         self.similarity_threshold = config.get('trgm_similarity_threshold', 0.3)
 
     def search(self, identity, searchtext, filter, limit):
@@ -71,6 +74,17 @@ class TrgmClient:
         if not limit:
             limit = self.default_search_limit
 
+        # Prepare query
+        layer_query = self.layer_query
+        if self.layer_query_template:
+            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens, facets=search_permissions)
+            self.logger.debug("Generated layer query from template")
+
+        feature_query = self.feature_query
+        if self.feature_query_template:
+            feature_query = Template(self.feature_query_template).render(searchtext=searchtext, words=tokens, facets=search_permissions)
+            self.logger.debug("Generated feature query from template")
+
         # Perform search
         layer_results = []
         feature_results = []
@@ -80,17 +94,17 @@ class TrgmClient:
                 conn.execute(sql_text("SET pg_trgm.similarity_threshold = :value"), {'value': self.similarity_threshold})
 
                 # Search for layers
-                if self.layer_query and search_dataproducts:
+                if layer_query and search_dataproducts:
                     start = time.time()
-                    self.logger.debug("Searching for layers: %s" % self.layer_query)
-                    layer_results = conn.execute(sql_text(self.layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
+                    self.logger.debug("Searching for layers: %s" % layer_query)
+                    layer_results = conn.execute(sql_text(layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
                     self.logger.debug("Done in %f s" % (time.time() - start))
 
                 # Search for features
-                if self.feature_query:
+                if feature_query:
                     start = time.time()
-                    self.logger.debug("Searching for features: %s" % self.feature_query)
-                    feature_results = conn.execute(sql_text(self.feature_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
+                    self.logger.debug("Searching for features: %s" % feature_query)
+                    feature_results = conn.execute(sql_text(feature_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
                     self.logger.debug("Done in %f s" % (time.time() - start))
 
         # Build results

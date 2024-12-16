@@ -144,17 +144,18 @@ and setting the `trgm_feature_query`, `trgm_layer_query`, `trgm_similarity_thres
 
 Config options in the config file can be overridden by equivalent uppercase environment variables.
 
-| Variable            | Description                              | Default value                           |
-|---------------------|------------------------------------------|-----------------------------------------|
-| SEARCH_BACKEND      | Search backend                           | `solr`                                  |
-| SOLR_SERVICE_URL    | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
-| WORD_SPLIT_RE       | Word split Regex                         | `[\s,.:;"]+`                            |
-| SEARCH_RESULT_LIMIT | Result count limit per search            | `50`                                    |
-| SEARCH_RESULT_SORT  | Sorting of search results (solr backend) | `score desc, sort asc`                  |
-| DB_URL              | DB connection for search geometries view |                                         |
-| TRGM_FEATURE_QUERY  | Feature query SQL (trigram backend)      |                                         |
-| TRGM_LAYER_QUERY    | Layer query SQL (trigram backend)        |                                         |
-| TRGM_SIMILARITY_THRESHOLD | Trigram similarity treshold (trigram backend) | `0.3`                        |
+| Variable                    | Description                              | Default value                           |
+|-----------------------------|------------------------------------------|-----------------------------------------|
+| SEARCH_BACKEND              | Search backend                           | `solr`                                  |
+| SOLR_SERVICE_URL            | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
+| WORD_SPLIT_RE               | Word split Regex                         | `[\s,.:;"]+`                            |
+| SEARCH_RESULT_LIMIT         | Result count limit per search            | `50`                                    |
+| SEARCH_RESULT_SORT          | Sorting of search results (solr backend) | `score desc, sort asc`                  |
+| DB_URL                      | DB connection for search geometries view |                                         |
+| TRGM_FEATURE_QUERY          | Feature query SQL (trigram backend)      |                                         |
+| TRGM_FEATURE_QUERY_TEMPLATE | Feature query SQL Jinja template (trigram backend) |                               |
+| TRGM_LAYER_QUERY_TEMPLATE   | Layer query SQL Jinja template (trigram backend)   |                               |
+| TRGM_SIMILARITY_THRESHOLD   | Trigram similarity treshold (trigram backend) | `0.3`                              |
 
 
 Usage/Development
