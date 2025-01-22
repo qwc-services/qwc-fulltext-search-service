@@ -60,14 +60,16 @@ class TrgmClient:
         if filterword:
             filter = [self.filterwords.get(filterword)]
 
-        # Determine permitted facets
+        # Determine permitted facets and dataproducts
         search_permissions = self.search_permissions(identity)
+        permitted_dataproducts = self.dataproduct_permissions(identity)
         if not filter:
             # use all permitted facets if filter is empty
             search_ds = search_permissions
         else:
             search_ds  = [facet for facet in filter if facet in search_permissions]
-        search_dataproducts = "dataproduct" in search_permissions and not filterword
+
+        search_dataproducts = not filterword
         self.logger.debug("Searching in datasets: %s" % ",".join(search_ds))
         self.logger.debug("Search for dataproducts: %s" % search_dataproducts)
 
@@ -113,14 +115,18 @@ class TrgmClient:
         self.logger.debug("Number of layer results: %d" % len(layer_results))
         self.logger.debug("Number of feature results: %d" % len(feature_results))
         for layer_result in layer_results:
-            results.append({
-                "dataproduct": {
-                    "display": layer_result["display"],
-                    "dataproduct_id": layer_result["dataproduct_id"],
-                    "dset_info": layer_result["dset_info"],
-                    "sublayers": json.loads(layer_result["sublayers"]) if layer_result["sublayers"] else None
-                }
-            })
+            dataproduct_id = layer_result["dataproduct_id"]
+            if dataproduct_id not in permitted_dataproducts and not '*' in permitted_dataproducts:
+                self.logger.debug("Skipping layer result with missing permission: %s" % dataproduct_id)
+            else:
+                results.append({
+                    "dataproduct": {
+                        "display": layer_result["display"],
+                        "dataproduct_id": dataproduct_id,
+                        "dset_info": layer_result["dset_info"],
+                        "sublayers": json.loads(layer_result["sublayers"]) if layer_result["sublayers"] else None
+                    }
+                })
 
         feature_result_count = 0
         for feature_result in feature_results:
@@ -158,17 +164,28 @@ class TrgmClient:
         )
 
         if "*" in permitted_facets:
-            return list(self.facets.keys()) + ["dataproduct"]
+            return list(self.facets.keys())
 
         # unique set
         permitted_facets = set(permitted_facets)
 
         # filter by permissions
         facets = [facet for facet in self.facets if facet in permitted_facets]
-        if "dataproduct" in permitted_facets:
-            facets.append("dataproduct")
 
         return facets
+
+    def dataproduct_permissions(self, identity):
+        """Return permitted dataproducts.
+
+        :param str identity: User identity
+        """
+        # get permitted dataproducts
+        permitted_dataproducts = self.permissions_handler.resource_permissions(
+            'dataproducts', identity
+        )
+
+        # return unique sorted dataproducts
+        return sorted(list(set(permitted_dataproducts)))
 
     def tokenize(self, searchtext):
         match = FILTERWORD_RE.match(searchtext)
