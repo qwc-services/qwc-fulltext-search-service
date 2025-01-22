@@ -10,6 +10,9 @@
       "permissions": {
         "solr_facets": [
           "*"
+        ],
+        "dataproducts": [
+          "test_dataproduct"
         ]
       }
     }
