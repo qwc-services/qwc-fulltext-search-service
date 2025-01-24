@@ -173,9 +173,9 @@ Configure environment:
 
     echo FLASK_ENV=development >.flaskenv
 
-Start service:
+Install dependencies and start service:
 
-    python src/server.py
+    uv run src/server.py
 
 Search base URL:
 
