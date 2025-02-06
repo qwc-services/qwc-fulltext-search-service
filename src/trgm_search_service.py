@@ -79,35 +79,34 @@ class TrgmClient:
         # Prepare query
         layer_query = self.layer_query
         if self.layer_query_template:
-            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens, facets=search_permissions)
+            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens)
             self.logger.debug("Generated layer query from template")
 
         feature_query = self.feature_query
         if self.feature_query_template:
-            feature_query = Template(self.feature_query_template).render(searchtext=searchtext, words=tokens, facets=search_permissions)
+            feature_query = Template(self.feature_query_template).render(searchtext=searchtext, words=tokens, facets=search_ds)
             self.logger.debug("Generated feature query from template")
 
         # Perform search
         layer_results = []
         feature_results = []
-        if search_ds:
-            with self.db_engine.db_engine(self.db_url).connect() as conn:
+        with self.db_engine.db_engine(self.db_url).connect() as conn:
 
-                conn.execute(sql_text("SET pg_trgm.similarity_threshold = :value"), {'value': self.similarity_threshold})
+            conn.execute(sql_text("SET pg_trgm.similarity_threshold = :value"), {'value': self.similarity_threshold})
 
-                # Search for layers
-                if layer_query and search_dataproducts:
-                    start = time.time()
-                    self.logger.debug("Searching for layers: %s" % layer_query)
-                    layer_results = conn.execute(sql_text(layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
-                    self.logger.debug("Done in %f s" % (time.time() - start))
+            # Search for layers
+            if search_dataproducts and layer_query:
+                start = time.time()
+                self.logger.debug("Searching for layers: %s" % layer_query)
+                layer_results = conn.execute(sql_text(layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
+                self.logger.debug("Done in %f s" % (time.time() - start))
 
-                # Search for features
-                if feature_query:
-                    start = time.time()
-                    self.logger.debug("Searching for features: %s" % feature_query)
-                    feature_results = conn.execute(sql_text(feature_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
-                    self.logger.debug("Done in %f s" % (time.time() - start))
+            # Search for features
+            if search_ds and feature_query:
+                start = time.time()
+                self.logger.debug("Searching for features: %s" % feature_query)
+                feature_results = conn.execute(sql_text(feature_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold, 'facets': search_ds}).mappings().all()
+                self.logger.debug("Done in %f s" % (time.time() - start))
 
         # Build results
         results = []
