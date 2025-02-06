@@ -398,7 +398,7 @@ wheels = [
 
 [[package]]
 name = "qwc-fulltext-search-service"
-version = "2025.1.22"
+version = "2025.2.6"
 source = { virtual = "." }
 dependencies = [
     { name = "flask" },
