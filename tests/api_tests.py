@@ -81,10 +81,9 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(dataproduct['dataproduct_id'], 'test_dataproduct')
         self.assertEqual(dataproduct['dset_info'], True)
 
-        # Test no result returned for no matching filter
+        # Test no feature results returned for no matching filter
         status_code, json_data = self.get(
             '/fts/?filter=other_dataset&searchtext=searchstring')
         data = json.loads(json_data)
         self.assertEqual(200, status_code, "Status code is not OK")
         self.assertEqual(data["feature_result_count"], 0)
-        self.assertEqual(len(data["results"]), 0)
