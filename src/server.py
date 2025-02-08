@@ -5,7 +5,8 @@ from werkzeug.exceptions import BadRequest
 from qwc_services_core.api import create_model, CaseInsensitiveArgument
 from qwc_services_core.auth import auth_manager, optional_auth, get_identity
 from qwc_services_core.runtime_config import RuntimeConfig
-from qwc_services_core.tenant_handler import TenantHandler
+from qwc_services_core.tenant_handler import (
+    TenantHandler, TenantPrefixMiddleware, TenantSessionInterface)
 from solr_search_service import SolrClient  # noqa: E402
 from trgm_search_service import TrgmClient  # noqa: E402
 from search_geom_service import SearchGeomService  # noqa: E402
@@ -83,6 +84,8 @@ app.config['ERROR_404_HELP'] = False
 auth = auth_manager(app, api)
 
 tenant_handler = TenantHandler(app.logger)
+app.wsgi_app = TenantPrefixMiddleware(app.wsgi_app)
+app.session_interface = TenantSessionInterface()
 
 
 def search_handler():
