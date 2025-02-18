@@ -1,6 +1,6 @@
 import unittest
 
-from tests.api_tests import *
+from tests.trgm_search_tests import *
 from tests.solr_search_tests import *
 
 
