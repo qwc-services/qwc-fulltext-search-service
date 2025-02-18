@@ -118,6 +118,9 @@ class TrgmClient:
             if dataproduct_id not in permitted_dataproducts and not '*' in permitted_dataproducts:
                 self.logger.debug("Skipping layer result with missing permission: %s" % dataproduct_id)
             else:
+                stacktype = None
+                if layer_result.get("isbackground", None) is not None:
+                    stacktype = "background" if layer_result["isbackground"] else "foreground"
                 results.append({
                     "dataproduct": {
                         "display": layer_result["display"],
@@ -125,7 +128,7 @@ class TrgmClient:
                         "dset_info": layer_result["dset_info"],
                         "sublayers": json.loads(layer_result["sublayers"]) if layer_result["sublayers"] else None,
                         "type": "layergroup" if layer_result["sublayers"] else "singleactor",
-                        "isbackground": layer_result.get("isbackground", None)
+                        "stacktype": stacktype
                     }
                 })
 
