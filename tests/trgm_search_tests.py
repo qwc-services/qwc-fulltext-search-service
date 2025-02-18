@@ -41,6 +41,7 @@ class ApiTestCase(unittest.TestCase):
                 %d AS feature_id,
                 'test_dataset' AS facet_id,
                 'test_dataset_id' AS id_field_name,
+                TRUE AS id_in_quotes,
                 '[-180,-90,180,90]' AS bbox,
                 'EPSG:4326' AS srid
         """ % x[0], enumerate([None] * 20))))
@@ -50,7 +51,8 @@ class ApiTestCase(unittest.TestCase):
                 :term AS display,
                 'test_dataproduct' AS dataproduct_id,
                 True AS dset_info,
-                 '[{"ident": "test_dataproduct_sublayer", "display": "Test sublayer", "dset_info": true}]' AS sublayers
+                TRUE as isbackground,
+                 '[{"dataproduct_id": "test_dataproduct_sublayer", "display": "Test sublayer", "dset_info": true}]' AS sublayers
         """
         os.environ["SEARCH_RESULT_LIMIT"] = "10"
 
@@ -71,6 +73,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertTrue(feature.get('feature_id', None) != None)
         self.assertEqual(feature['dataproduct_id'], 'test_dataset')
         self.assertEqual(feature['id_field_name'], 'test_dataset_id')
+        self.assertEqual(feature['id_field_type'], True)
         self.assertEqual(feature['bbox'], [-180,-90,180,90])
         self.assertEqual(feature['srid'], 'EPSG:4326')
 
@@ -80,6 +83,8 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(dataproduct['display'], 'searchstring')
         self.assertEqual(dataproduct['dataproduct_id'], 'test_dataproduct')
         self.assertEqual(dataproduct['dset_info'], True)
+        self.assertEqual(dataproduct['stacktype'], "background")
+        self.assertEqual(dataproduct['type'], "layergroup")
 
         # Test no feature results returned for no matching filter
         status_code, json_data = self.get(
