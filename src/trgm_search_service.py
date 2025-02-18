@@ -123,7 +123,9 @@ class TrgmClient:
                         "display": layer_result["display"],
                         "dataproduct_id": dataproduct_id,
                         "dset_info": layer_result["dset_info"],
-                        "sublayers": json.loads(layer_result["sublayers"]) if layer_result["sublayers"] else None
+                        "sublayers": json.loads(layer_result["sublayers"]) if layer_result["sublayers"] else None,
+                        "type": "layergroup" if layer_result["sublayers"] else "singleactor",
+                        "isbackground": layer_result.get("isbackground", None)
                     }
                 })
 
@@ -138,6 +140,7 @@ class TrgmClient:
                             "dataproduct_id": feature_result["facet_id"],
                             "feature_id": feature_result["feature_id"],
                             "id_field_name": feature_result["id_field_name"],
+                            "id_field_type": feature_result.get("id_in_quotes", None),
                             "bbox": json.loads(feature_result["bbox"]) if feature_result["bbox"] else None,
                             "srid": feature_result["srid"]
                         }
