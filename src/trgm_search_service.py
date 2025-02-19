@@ -121,16 +121,16 @@ class TrgmClient:
                 stacktype = None
                 if layer_result.get("isbackground", None) is not None:
                     stacktype = "background" if layer_result["isbackground"] else "foreground"
-                results.append({
-                    "dataproduct": {
-                        "display": layer_result["display"],
-                        "dataproduct_id": dataproduct_id,
-                        "dset_info": layer_result["dset_info"],
-                        "sublayers": json.loads(layer_result["sublayers"]) if layer_result["sublayers"] else None,
-                        "type": "layergroup" if layer_result["sublayers"] else "singleactor",
-                        "stacktype": stacktype
-                    }
-                })
+                dataproduct = {
+                    "display": layer_result["display"],
+                    "dataproduct_id": dataproduct_id,
+                    "dset_info": layer_result["dset_info"],
+                    "type": "layergroup" if layer_result["sublayers"] else "singleactor",
+                    "stacktype": stacktype
+                }
+                if layer_result["sublayers"]:
+                    dataproduct["sublayers"] = json.loads(layer_result["sublayers"])
+                results.append({"dataproduct": dataproduct})
 
         feature_result_count = 0
         for feature_result in feature_results:
