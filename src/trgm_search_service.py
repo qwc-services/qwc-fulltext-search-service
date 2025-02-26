@@ -161,7 +161,7 @@ class TrgmClient:
                 if not feature_result["facet_id"] in result_counts:
                     result_counts[feature_result["facet_id"]] = {
                         "dataproduct_id": feature_result["facet_id"],
-                        "filterword": self.facets.get(feature_result["facet_id"], {}).get('filter_word', ""),
+                        "filterword": self.facets.get(feature_result["facet_id"], {}).get('filter_word', feature_result["facet_id"]),
                         "count": 0
                     }
                 result_counts[feature_result["facet_id"]]["count"] += 1

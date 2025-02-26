@@ -58,7 +58,7 @@ class ApiTestCase(unittest.TestCase):
 
         # Test result returned for matching filter
         status_code, json_data = self.get(
-            '/fts/?filter=test_dataset,dataproduct&searchtext=searchstring')
+            '/fts/?filter=test_dataset,foreground&searchtext=searchstring')
         data = json.loads(json_data)
         self.assertEqual(200, status_code, "Status code is not OK")
         self.assertEqual(len(data["results"]), 11)
