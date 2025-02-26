@@ -65,6 +65,9 @@ class ApiTestCase(unittest.TestCase):
 
         self.assertEqual(data["feature_result_count"], 20)
         self.assertEqual(data["layer_result_count"], 1)
+        self.assertEqual(len(data["result_counts"]), 2)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 1)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 1)
 
         features = list(filter(lambda result: result.get("feature", None), data["results"]))
         self.assertEqual(len(features), 10)
@@ -83,7 +86,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(dataproduct['display'], 'searchstring')
         self.assertEqual(dataproduct['dataproduct_id'], 'test_dataproduct')
         self.assertEqual(dataproduct['dset_info'], True)
-        self.assertEqual(dataproduct['stacktype'], "background")
+        self.assertEqual(dataproduct['stacktype'], "foreground")
         self.assertEqual(dataproduct['type'], "layergroup")
 
         # Test no feature results returned for no matching filter
@@ -92,3 +95,29 @@ class ApiTestCase(unittest.TestCase):
         data = json.loads(json_data)
         self.assertEqual(200, status_code, "Status code is not OK")
         self.assertEqual(data["feature_result_count"], 0)
+
+        # Test filterword (see filterwords defined in test searchConfig.json)
+        status_code, json_data = self.get(
+            '/fts/?filter=test_dataset,foreground&searchtext=Test:searchstring')
+        data = json.loads(json_data)
+        self.assertEqual(data["feature_result_count"], 20)
+        self.assertEqual(data["layer_result_count"], 0)
+        self.assertEqual(len(data["result_counts"]), 1)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 1)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 0)
+
+        status_code, json_data = self.get(
+            '/fts/?filter=test_dataset,foreground&searchtext=Map:searchstring')
+        data = json.loads(json_data)
+        self.assertEqual(data["feature_result_count"], 0)
+        self.assertEqual(data["layer_result_count"], 1)
+        self.assertEqual(len(data["result_counts"]), 1)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 0)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 1)
+
+        status_code, json_data = self.get(
+            '/fts/?filter=test_dataset,foreground&searchtext=Foo:searchstring')
+        data = json.loads(json_data)
+        self.assertEqual(data["feature_result_count"], 0)
+        self.assertEqual(data["layer_result_count"], 0)
+        self.assertEqual(len(data["result_counts"]), 0)
