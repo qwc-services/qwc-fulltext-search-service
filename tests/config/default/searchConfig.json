@@ -17,6 +17,10 @@
         "filter_word": "Test",
         "table_name": "public.test",
         "geometry_column": "geom"
+      },
+      {
+        "name": "foreground",
+        "filter_word": "Map"
       }
     ]
   }
