@@ -51,7 +51,7 @@ class ApiTestCase(unittest.TestCase):
                 :term AS display,
                 'test_dataproduct' AS dataproduct_id,
                 True AS dset_info,
-                TRUE as isbackground,
+                'foreground' AS stacktype,
                  '[{"dataproduct_id": "test_dataproduct_sublayer", "display": "Test sublayer", "dset_info": true}]' AS sublayers
         """
         os.environ["SEARCH_RESULT_LIMIT"] = "10"
