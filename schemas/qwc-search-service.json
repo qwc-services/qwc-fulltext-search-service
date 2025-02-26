@@ -33,19 +33,19 @@
           "type": "string"
         },
         "trgm_feature_query_template": {
-          "description": "Jinja template string to generate the feature query SQL. The following variables are passed to the template: `searchtext` (the full search text, as a string), `words` (the single words of the search text, as an array), `facets` (the permitted search facets, as an array). The generated SQL needs to satisfy the same requirements as documented in `trgm_feature_query`.",
+          "description": "Jinja template string to generate the feature query SQL. The following variables are passed to the template: `searchtext` (the full search text, as a string), `words` (the single words of the search text, as an array) and `facets` (the permitted search facets, as an array). The generated SQL can accept the same placeholder parameters and must return the columns as documented in `trgm_feature_query`.",
           "type": "string"
         },
         "trgm_feature_query": {
-          "description": "Trigram feature query SQL. You can use the placeholder parameters `:term` (full search string), `:terms` (list of words of the search string), `:thres` (similarity threshold) and `facets` (the permitted search facets, as a list). The query must return the columns display, facet_id, id_field_name, feature_id, bbox (as a `[xmin,ymin,xmax,ymax]` string), srid.",
+          "description": "Trigram feature query SQL. You can use the placeholder parameters `:term` (full search string), `:terms` (list of words of the search string), `:thres` (similarity threshold) and `:facets` (the permitted search facets, as a list). The query must return the columns display, facet_id, id_field_name, feature_id, bbox (as a `[xmin,ymin,xmax,ymax]` string), srid.",
           "type": "string"
         },
         "trgm_layer_query_template": {
-          "description": "Jinja template string to generate the layer query SQL. The following variables are passed to the template: `searchtext` (the full search text, as a string) and `words` (the single words of the search text, as an array). The generated SQL needs to satisfy the same requirements as documented in `trgm_layer_query`.",
+          "description": "Jinja template string to generate the layer query SQL. The following variables are passed to the template: `searchtext` (the full search text, as a string), `words` (the single words of the search text, as an array) and `facets` (the permitted search facets, as an array). The generated SQL can accept the same placeholder parameters and must return the columns as documented in `trgm_layer_query`.",
           "type": "string"
         },
         "trgm_layer_query": {
-          "description": "Trigram layer query SQL. You can use the placeholder parameters `:term` (full search string), `:terms` (list of words of the search string) and `:thres` (similarity threshold). The query must return the columns display, dataproduct_id, dset_info, sublayers.",
+          "description": "Trigram layer query SQL. You can use the placeholder parameters `:term` (full search string), `:terms` (list of words of the search string), `:thres` (similarity threshold) and `:facets` (the permitted search facets, as a list). The query must return the columns display, dataproduct_id, dset_info, sublayers, stacktype.",
           "type": "string"
         },
         "trgm_similarity_threshold": {
