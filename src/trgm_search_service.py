@@ -53,25 +53,26 @@ class TrgmClient:
         self.layer_query_template = config.get('trgm_layer_query_template')
         self.similarity_threshold = config.get('trgm_similarity_threshold', 0.3)
 
-    def search(self, identity, searchtext, filter, limit):
+    def search(self, identity, searchtext, searchfilter, limit):
         (filterword, tokens) = self.tokenize(searchtext)
         if not tokens:
             return {'results': [], 'result_counts': [], 'layer_result_count': 0, 'feature_result_count': 0}
         if filterword:
-            filter = [self.filterwords.get(filterword)]
+            searchfilter = [self.filterwords.get(filterword)]
 
         # Determine permitted facets and dataproducts
         search_permissions = self.search_permissions(identity)
         permitted_dataproducts = self.dataproduct_permissions(identity)
-        if not filter:
+        if not searchfilter:
             # use all permitted facets if filter is empty
-            search_ds = search_permissions
+            search_facets = search_permissions
         else:
-            search_ds  = [facet for facet in filter if facet in search_permissions]
+            search_facets  = [facet for facet in searchfilter if facet in search_permissions]
 
-        search_dataproducts = not filterword
+        search_ds = list(filter(lambda facet: facet not in ["foreground", "background"], search_facets))
+        search_dp = list(filter(lambda facet: facet in ["foreground", "background"], search_facets))
         self.logger.debug("Searching in datasets: %s" % ",".join(search_ds))
-        self.logger.debug("Search for dataproducts: %s" % search_dataproducts)
+        self.logger.debug("Search for dataproducts: %s" % ",".join(search_dp))
 
         if not limit:
             limit = self.default_search_limit
@@ -79,7 +80,7 @@ class TrgmClient:
         # Prepare query
         layer_query = self.layer_query
         if self.layer_query_template:
-            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens)
+            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens, facets=search_dp)
             self.logger.debug("Generated layer query from template")
 
         feature_query = self.feature_query
@@ -95,10 +96,10 @@ class TrgmClient:
             conn.execute(sql_text("SET pg_trgm.similarity_threshold = :value"), {'value': self.similarity_threshold})
 
             # Search for layers
-            if search_dataproducts and layer_query:
+            if search_dp and layer_query:
                 start = time.time()
                 self.logger.debug("Searching for layers: %s" % layer_query)
-                layer_results = conn.execute(sql_text(layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold}).mappings().all()
+                layer_results = conn.execute(sql_text(layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold, 'facets': search_dp}).mappings().all()
                 self.logger.debug("Done in %f s" % (time.time() - start))
 
             # Search for features
@@ -131,6 +132,15 @@ class TrgmClient:
                 if layer_result["sublayers"]:
                     dataproduct["sublayers"] = json.loads(layer_result["sublayers"])
                 results.append({"dataproduct": dataproduct})
+
+                if stacktype:
+                    if not stacktype in result_counts:
+                        result_counts[stacktype] = {
+                            "dataproduct_id": stacktype,
+                            "filterword": self.facets.get(stacktype, {}).get('filter_word', stacktype),
+                            "count": 0
+                        }
+                    result_counts[stacktype]["count"] += 1
 
         feature_result_count = 0
         for feature_result in feature_results:
