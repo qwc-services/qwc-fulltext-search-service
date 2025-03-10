@@ -135,3 +135,15 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(self.feature_result_count(data), 0)
         self.assertEqual(self.layer_result_count(data), 0)
         self.assertEqual(len(data["result_counts"]), 0)
+
+        # Test search result count = -1
+        server.search_handler().facet_search_limit = 10
+        status_code, json_data = self.get(
+            '/fts/?filter=test_dataset&searchtext=searchstring')
+        data = json.loads(json_data)
+        self.assertEqual(200, status_code, "Status code is not OK")
+        self.assertEqual(len(data["results"]), 10)
+
+        self.assertEqual(len(data["result_counts"]), 1)
+        self.assertEqual(data["result_counts"][0]["count"], -1)
+        self.assertEqual(data["result_counts"][0]["filterword"], "Test")
