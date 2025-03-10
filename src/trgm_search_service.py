@@ -33,6 +33,7 @@ class TrgmClient:
             config.get('word_split_re', r'[\s,.:;"]+')
         )
         self.default_search_limit = config.get('search_result_limit', 50)
+        self.facet_search_limit = config.get('trgm_facet_search_limit', 50)
 
         self.facets = dict(map(
             lambda facet: [facet['name'], facet],
@@ -80,12 +81,18 @@ class TrgmClient:
         # Prepare query
         layer_query = self.layer_query
         if self.layer_query_template:
-            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens, facets=search_dp)
+            layer_query = Template(self.layer_query_template).render(
+                searchtext=searchtext, words=tokens, facets=search_dp
+            )
             self.logger.debug("Generated layer query from template")
 
         feature_query = self.feature_query
         if self.feature_query_template:
-            feature_query = Template(self.feature_query_template).render(searchtext=searchtext, words=tokens, facets=search_ds)
+            # NOTE: facet_search_limit + 1: we limit results to facet_search_limit below, but pass + 1 here to
+            # be able to detect whether there were actually more results than facet_search_limit
+            feature_query = Template(self.feature_query_template).render(
+                searchtext=searchtext, words=tokens, facets=search_ds, facetlimit=self.facet_search_limit + 1
+            )
             self.logger.debug("Generated feature query from template")
 
         # Perform search
@@ -99,14 +106,20 @@ class TrgmClient:
             if search_dp and layer_query:
                 start = time.time()
                 self.logger.debug("Searching for layers: %s" % layer_query)
-                layer_results = conn.execute(sql_text(layer_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold, 'facets': search_dp}).mappings().all()
+                layer_results = conn.execute(sql_text(layer_query), {
+                    'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold, 'facets': search_dp
+                }).mappings().all()
                 self.logger.debug("Done in %f s" % (time.time() - start))
 
             # Search for features
             if search_ds and feature_query:
                 start = time.time()
                 self.logger.debug("Searching for features: %s" % feature_query)
-                feature_results = conn.execute(sql_text(feature_query), {'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold, 'facets': search_ds}).mappings().all()
+                # NOTE: facet_search_limit + 1: we limit results to facet_search_limit below, but pass + 1 here to
+                # be able to detect whether there were actually more results than facet_search_limit
+                feature_results = conn.execute(sql_text(feature_query), {
+                    'term': " ".join(tokens), 'terms': tokens, 'thres': self.similarity_threshold, 'facets': search_ds, 'facetlimit': self.facet_search_limit + 1
+                }).mappings().all()
                 self.logger.debug("Done in %f s" % (time.time() - start))
 
         # Build results
@@ -143,8 +156,15 @@ class TrgmClient:
         feature_result_count = 0
         for feature_result in feature_results:
             if feature_result['facet_id'] in search_ds:
+                if not feature_result["facet_id"] in result_counts:
+                    result_counts[feature_result["facet_id"]] = {
+                        "dataproduct_id": feature_result["facet_id"],
+                        "filterword": self.facets.get(feature_result["facet_id"], {}).get('filter_word', feature_result["facet_id"]),
+                        "count": 0
+                    }
                 feature_result_count += 1
-                if feature_result_count <= limit:
+                result_counts[feature_result["facet_id"]]["count"] += 1
+                if feature_result_count <= limit and result_counts[feature_result["facet_id"]]["count"] <= self.facet_search_limit:
                     results.append({
                         "feature": {
                             "display": feature_result["display"],
@@ -156,13 +176,11 @@ class TrgmClient:
                             "srid": feature_result["srid"]
                         }
                     })
-                if not feature_result["facet_id"] in result_counts:
-                    result_counts[feature_result["facet_id"]] = {
-                        "dataproduct_id": feature_result["facet_id"],
-                        "filterword": self.facets.get(feature_result["facet_id"], {}).get('filter_word', feature_result["facet_id"]),
-                        "count": 0
-                    }
-                result_counts[feature_result["facet_id"]]["count"] += 1
+
+        for facet in result_counts:
+            # Search query limited results, the true result count is not known
+            if result_counts[facet]["count"] >= self.facet_search_limit:
+                result_counts[facet]["count"] = -1
 
         return {"results": results, "result_counts": list(result_counts.values()), "layer_result_count": len(layer_results), "feature_result_count": feature_result_count}
 
