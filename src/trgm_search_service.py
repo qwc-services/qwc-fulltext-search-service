@@ -57,7 +57,7 @@ class TrgmClient:
     def search(self, identity, searchtext, searchfilter, limit):
         (filterword, tokens) = self.tokenize(searchtext)
         if not tokens:
-            return {'results': [], 'result_counts': [], 'layer_result_count': 0, 'feature_result_count': 0}
+            return {'results': [], 'result_counts': []}
         if filterword:
             searchfilter = [self.filterwords.get(filterword)]
 
@@ -182,7 +182,7 @@ class TrgmClient:
             if result_counts[facet]["count"] >= self.facet_search_limit:
                 result_counts[facet]["count"] = -1
 
-        return {"results": results, "result_counts": list(result_counts.values()), "layer_result_count": len(layer_results), "feature_result_count": feature_result_count}
+        return {"results": results, "result_counts": list(result_counts.values())}
 
     def search_permissions(self, identity):
         """Return permitted search facets.

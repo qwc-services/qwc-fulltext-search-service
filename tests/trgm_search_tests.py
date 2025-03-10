@@ -32,6 +32,20 @@ class ApiTestCase(unittest.TestCase):
         response = self.app.get(url, headers=self.jwtHeader())
         return response.status_code, response.data
 
+    def feature_result_count(self, data):
+        count = 0
+        for entry in data["result_counts"]:
+           if entry["dataproduct_id"] not in ["foreground", "background"]:
+               count += entry["count"]
+        return count
+
+    def layer_result_count(self, data):
+        count = 0
+        for entry in data["result_counts"]:
+           if entry["dataproduct_id"] in ["foreground", "background"]:
+                count += entry["count"]
+        return count
+
     def test_search(self):
         # Test API with Trigram backend and dummy SQL queries
         os.environ["SEARCH_BACKEND"] = "trgm"
@@ -63,8 +77,8 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(200, status_code, "Status code is not OK")
         self.assertEqual(len(data["results"]), 11)
 
-        self.assertEqual(data["feature_result_count"], 20)
-        self.assertEqual(data["layer_result_count"], 1)
+        self.assertEqual(self.feature_result_count(data), 20)
+        self.assertEqual(self.layer_result_count(data), 1)
         self.assertEqual(len(data["result_counts"]), 2)
         self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 1)
         self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 1)
@@ -94,14 +108,14 @@ class ApiTestCase(unittest.TestCase):
             '/fts/?filter=other_dataset&searchtext=searchstring')
         data = json.loads(json_data)
         self.assertEqual(200, status_code, "Status code is not OK")
-        self.assertEqual(data["feature_result_count"], 0)
+        self.assertEqual(self.feature_result_count(data), 0)
 
         # Test filterword (see filterwords defined in test searchConfig.json)
         status_code, json_data = self.get(
             '/fts/?filter=test_dataset,foreground&searchtext=Test:searchstring')
         data = json.loads(json_data)
-        self.assertEqual(data["feature_result_count"], 20)
-        self.assertEqual(data["layer_result_count"], 0)
+        self.assertEqual(self.feature_result_count(data), 20)
+        self.assertEqual(self.layer_result_count(data), 0)
         self.assertEqual(len(data["result_counts"]), 1)
         self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 1)
         self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 0)
@@ -109,8 +123,8 @@ class ApiTestCase(unittest.TestCase):
         status_code, json_data = self.get(
             '/fts/?filter=test_dataset,foreground&searchtext=Map:searchstring')
         data = json.loads(json_data)
-        self.assertEqual(data["feature_result_count"], 0)
-        self.assertEqual(data["layer_result_count"], 1)
+        self.assertEqual(self.feature_result_count(data), 0)
+        self.assertEqual(self.layer_result_count(data), 1)
         self.assertEqual(len(data["result_counts"]), 1)
         self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 0)
         self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 1)
@@ -118,6 +132,6 @@ class ApiTestCase(unittest.TestCase):
         status_code, json_data = self.get(
             '/fts/?filter=test_dataset,foreground&searchtext=Foo:searchstring')
         data = json.loads(json_data)
-        self.assertEqual(data["feature_result_count"], 0)
-        self.assertEqual(data["layer_result_count"], 0)
+        self.assertEqual(self.feature_result_count(data), 0)
+        self.assertEqual(self.layer_result_count(data), 0)
         self.assertEqual(len(data["result_counts"]), 0)
