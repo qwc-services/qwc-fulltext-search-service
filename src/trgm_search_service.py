@@ -1,15 +1,16 @@
-import re
-import os
-import requests
 import json
+import os
+import re
 import time
+
+from flask import json
+from jinja2 import Template
 from qwc_services_core.database import DatabaseEngine
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
-from flask import json, request
-from jinja2 import Template
 from sqlalchemy.sql import text as sql_text
 
+from search_resources import SearchResources
 
 FILTERWORD_CHARS = os.environ.get('FILTERWORD_CHARS', r'\w.')
 FILTERWORD_RE = re.compile(f'^([{FILTERWORD_CHARS}]+):\b*')
@@ -43,7 +44,9 @@ class TrgmClient:
             lambda facet: [facet['filter_word'], facet['name']],
             config.resources().get('facets', [])
         ))
-        self.permissions_handler = PermissionsReader(tenant, logger)
+
+        permissions = PermissionsReader(tenant, logger)
+        self.resources = SearchResources(config, permissions)
 
         self.db_engine = DatabaseEngine()
         self.db_url = config.get('db_url')
@@ -62,13 +65,13 @@ class TrgmClient:
             searchfilter = [self.filterwords.get(filterword)]
 
         # Determine permitted facets and dataproducts
-        search_permissions = self.search_permissions(identity)
-        permitted_dataproducts = self.dataproduct_permissions(identity)
+        solr_facets = self.resources.solr_facets(identity)
+        permitted_dataproducts = self.resources.dataproducts(identity)
         if not searchfilter:
             # use all permitted facets if filter is empty
-            search_facets = search_permissions
+            search_facets = list(solr_facets.keys())
         else:
-            search_facets  = [facet for facet in searchfilter if facet in search_permissions]
+            search_facets = [facet for facet in searchfilter if facet in solr_facets]
 
         search_ds = list(filter(lambda facet: facet not in ["foreground", "background"], search_facets))
         search_dp = list(filter(lambda facet: facet in ["foreground", "background"], search_facets))
@@ -129,7 +132,7 @@ class TrgmClient:
         self.logger.debug("Number of feature results: %d" % len(feature_results))
         for layer_result in layer_results:
             dataproduct_id = layer_result["dataproduct_id"]
-            if dataproduct_id not in permitted_dataproducts and not '*' in permitted_dataproducts:
+            if dataproduct_id not in permitted_dataproducts and '*' not in permitted_dataproducts:
                 self.logger.debug("Skipping layer result with missing permission: %s" % dataproduct_id)
             else:
                 stacktype = layer_result.get("stacktype", None)
@@ -183,40 +186,6 @@ class TrgmClient:
                 result_counts[facet]["count"] = -1
 
         return {"results": results, "result_counts": list(result_counts.values())}
-
-    def search_permissions(self, identity):
-        """Return permitted search facets.
-
-        :param str identity: User identity
-        """
-        # get permitted facets
-        permitted_facets = self.permissions_handler.resource_permissions(
-            'solr_facets', identity
-        )
-
-        if "*" in permitted_facets:
-            return list(self.facets.keys())
-
-        # unique set
-        permitted_facets = set(permitted_facets)
-
-        # filter by permissions
-        facets = [facet for facet in self.facets if facet in permitted_facets]
-
-        return facets
-
-    def dataproduct_permissions(self, identity):
-        """Return permitted dataproducts.
-
-        :param str identity: User identity
-        """
-        # get permitted dataproducts
-        permitted_dataproducts = self.permissions_handler.resource_permissions(
-            'dataproducts', identity
-        )
-
-        # return unique sorted dataproducts
-        return sorted(list(set(permitted_dataproducts)))
 
     def tokenize(self, searchtext):
         match = FILTERWORD_RE.match(searchtext)

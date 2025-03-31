@@ -1,15 +1,12 @@
-from flask import Flask, Request as RequestBase, request, jsonify
-from flask_restx import Api, Resource, fields, reqparse
-from werkzeug.exceptions import BadRequest
-
-from qwc_services_core.api import create_model, CaseInsensitiveArgument
-from qwc_services_core.auth import auth_manager, optional_auth, get_identity
+from flask import Flask, jsonify, request
+from flask_restx import Api, Resource
+from qwc_services_core.auth import auth_manager, get_identity, optional_auth
 from qwc_services_core.runtime_config import RuntimeConfig
-from qwc_services_core.tenant_handler import (
-    TenantHandler, TenantPrefixMiddleware, TenantSessionInterface)
+from qwc_services_core.tenant_handler import (TenantHandler, TenantPrefixMiddleware, TenantSessionInterface)
+
+from search_geom_service import SearchGeomService  # noqa: E402
 from solr_search_service import SolrClient  # noqa: E402
 from trgm_search_service import TrgmClient  # noqa: E402
-from search_geom_service import SearchGeomService  # noqa: E402
 
 # Flask application
 app = Flask(__name__)

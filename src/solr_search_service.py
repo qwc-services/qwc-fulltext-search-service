@@ -1,10 +1,12 @@
-import re
 import os
+import re
+
 import requests
+from flask import json
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
-from flask import json, request
 
+from search_resources import SearchResources
 
 FILTERWORD_CHARS = os.environ.get('FILTERWORD_CHARS', r'\w.')
 FILTERWORD_RE = re.compile(f'^([{FILTERWORD_CHARS}]+):\b*')
@@ -37,29 +39,29 @@ class SolrClient:
         self.default_search_limit = config.get('search_result_limit', 50)
         self.search_result_sort = config.get('search_result_sort', 'score desc, sort asc')
 
-        self.resources = self.load_resources(config)
-        self.permissions_handler = PermissionsReader(tenant, logger)
+        permissions = PermissionsReader(tenant, logger)
+        self.resources = SearchResources(config, permissions)
 
     def search(self, identity, searchtext, filter, limit):
-        search_permissions = self.search_permissions(identity)
+        solr_facets = self.resources.solr_facets(identity)
         (filterword, tokens) = self.tokenize(searchtext)
         if not tokens:
             return {'results': [], 'result_counts': []}
         filter_ids = filter
         if not filter:
             # use all permitted facets if filter is empty
-            filter_ids = search_permissions.keys()
+            filter_ids = list(solr_facets.keys())
         if not limit:
             limit = self.default_search_limit
 
-        response = self.query(tokens, filterword, filter_ids, limit,
-                              search_permissions)
+        response = self.query(tokens, filterword, filter_ids, limit, solr_facets)
+
         # Return Solr error response
         if type(response) is tuple:
             return response
 
         self.logger.debug(json.dumps(response, indent=2))
-        permitted_dataproducts = self.dataproduct_permissions(identity)
+        permitted_dataproducts = self.resources.dataproducts(identity)
         results = []
         num_solr_results_dp = 0
         for doc in response['response']['docs']:
@@ -69,20 +71,16 @@ class SolrClient:
                 if result is not None:
                     results.append(result)
             else:
-                results.append(
-                    self.feature_result(doc, filterword, search_permissions))
+                results.append(self.feature_result(doc, filterword, solr_facets))
 
-        result_counts = self.result_counts(
-            response, filterword, num_solr_results_dp, search_permissions)
+        result_counts = self.result_counts(response, filterword, num_solr_results_dp, solr_facets)
 
         return {'results': results, 'result_counts': result_counts}
 
-    def query(self, tokens, filterword, filter_ids, limit,
-              search_permissions):
+    def query(self, tokens, filterword, filter_ids, limit, solr_facets):
         # https://lucene.apache.org/solr/guide/8_1/common-query-parameters.html
         q = self.query_str(tokens)
-        fq = self.filter_query_str(filterword, filter_ids,
-                                   search_permissions)
+        fq = self.filter_query_str(filterword, filter_ids, solr_facets)
         response = requests.get(
             self.solr_service_url,
             params="omitHeader=true&facet=true&facet.field=facet&sort=" +
@@ -101,25 +99,21 @@ class SolrClient:
         match = FILTERWORD_RE.match(searchtext)
         if match:
             st = searchtext[match.span()[1]:]
-            return (match.group(1), self.split_words(st))
+            return match.group(1), self.split_words(st)
         else:
-            return (None, self.split_words(searchtext))
+            return None, self.split_words(searchtext)
 
     def query_str(self, tokens):
         lines = map(lambda p: self.join_word_parts(p, tokens), QUERY_PARTS)
         query = ' OR '.join(lines)
         return 'q=%s' % query
 
-    def filter_query_str(self, filterword, filter_ids,
-                         search_permissions):
+    def filter_query_str(self, filterword, filter_ids, solr_facets):
         if filterword:
-            facets = [self.filterword_to_facet(filterword, search_permissions)]
-        elif '*' in search_permissions:
-            # all allowed, facet = filterword
-            facets = filter_ids
+            facets = [self.filterword_to_facet(filterword, solr_facets)]
         else:
             # Remove facets without permissions
-            facets = list(filter(lambda f: search_permissions.get(f), filter_ids))
+            facets = list(filter(lambda f: solr_facets.get(f), filter_ids))
             if len(facets) != len(filter_ids):
                 self.logger.info("Removed filter ids with missing permissions")
                 self.logger.info("Passed filter ids: %s" % filter_ids)
@@ -134,11 +128,8 @@ class SolrClient:
             fq += ' AND (%s)' % facet_query
         return fq
 
-    def filterword_to_facet(self, filterword, search_permissions):
-        if '*' in search_permissions:
-            # all allowed, facet = filterword
-            return filterword
-        for facet, entries in search_permissions.items():
+    def filterword_to_facet(self, filterword, solr_facets):
+        for facet, entries in solr_facets.items():
             # filterword lookup table should be cached
             for entry in entries:
                 if self.check_filterword(filterword, entry):
@@ -151,7 +142,7 @@ class SolrClient:
         dataproduct_id = id[1]
 
         # skip layer without permissions
-        if dataproduct_id not in permitted_dataproducts:
+        if dataproduct_id not in permitted_dataproducts and '*' not in permitted_dataproducts:
             self.logger.debug("Skipping layer result with "
                               "missing permission: %s" % dataproduct_id)
             return None
@@ -168,13 +159,13 @@ class SolrClient:
             children = json.loads(doc['dset_children'])
             for child in children:
                 child_ident = child['ident']
-                if child_ident in permitted_dataproducts:
+                if child_ident in permitted_dataproducts or '*' in permitted_dataproducts:
                     sublayers.append({
                         'display': child['display'],
                         'type': child['subclass'],
                         'dataproduct_id': child_ident,
                         'dset_info': child['dset_info']
-                        })
+                    })
                 else:
                     self.logger.debug("Skipping child layer with "
                                       "missing permission: %s" % child_ident)
@@ -182,7 +173,7 @@ class SolrClient:
 
         return {'dataproduct': layer}
 
-    def feature_result(self, doc, filterword, search_permissions):
+    def feature_result(self, doc, filterword, solr_facets):
         id = json.loads(doc['id'])
         idfield_meta = json.loads(doc['idfield_meta'])
         idfield_str = idfield_meta[1].split(':')[1] == 'y'
@@ -198,19 +189,15 @@ class SolrClient:
                 self.logger.error("Error converting feature_id to int: %s" % e)
                 idfield_str = True
 
-        if '*' in search_permissions:
-                return self._feature_rec(
-                    doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid)
-
         # Return only permitted facets
-        for entry in search_permissions.get(facet, []):
+        for entry in solr_facets.get(facet, []):
             if self.check_filterword(filterword, entry):
                 return self._feature_rec(
                     doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid)
+
         return {}
 
-    def _feature_rec(self, doc, idfield_meta, facet, feature_id,
-                     idfield_str, bbox, srid):
+    def _feature_rec(self, doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid):
         id_field_name = idfield_meta[0]
         feature = {
             'display': doc['display'],
@@ -223,8 +210,7 @@ class SolrClient:
         }
         return {'feature': feature}
 
-    def result_counts(self, response, filterword, num_solr_results_dp,
-                      search_permissions):
+    def result_counts(self, response, filterword, num_solr_results_dp, solr_facets):
         result_counts = []
         facet_counts = response['facet_counts']['facet_fields']['facet']
         for i in range(0, len(facet_counts), 2):
@@ -237,76 +223,20 @@ class SolrClient:
                         # Don't return count if all results already included
                         continue
                     count = None
-                if '*' in search_permissions:
-                    result_counts.append({
-                        'dataproduct_id': facet,
-                        'filterword': facet,
-                        'count': count
-                    })
-                else:
-                    # Return multiple results if facet is used for multiple dataproducts
-                    for entry in search_permissions.get(facet, []):
-                        if self.check_filterword(filterword, entry):
-                            result_counts.append({
-                                'dataproduct_id': facet,
-                                # rename dataproduct_id to facet!
-                                'filterword': entry['filter_word'],
-                                'count': count
-                            })
+                # Return multiple results if facet is used for multiple dataproducts
+                for entry in solr_facets.get(facet, []):
+                    if self.check_filterword(filterword, entry):
+                        result_counts.append({
+                            'dataproduct_id': facet,
+                            # rename dataproduct_id to facet!
+                            'filterword': entry['filter_word'],
+                            'count': count
+                        })
         return result_counts
 
     def check_filterword(self, filterword, entry):
         return not filterword or (
                entry['filter_word'].lower() == filterword.lower())
-
-    def load_resources(self, config):
-        """Load service resources from config.
-
-        :param RuntimeConfig config: Config handler
-        """
-        # collect service resources (group by facet name)
-        facets = {}
-        for facet in config.resources().get('facets', []):
-            if facet['name'] not in facets:
-                facets[facet['name']] = []
-            facets[facet['name']].append(facet)
-
-        return {
-            'facets': facets
-        }
-
-    def search_permissions(self, identity):
-        """Return permitted search facets.
-
-        :param str identity: User identity
-        """
-        # get permitted facets
-        permitted_facets = self.permissions_handler.resource_permissions(
-            'solr_facets', identity
-        )
-        # unique set
-        permitted_facets = set(permitted_facets)
-
-        # filter by permissions
-        facets = {}
-        for facet in self.resources['facets']:
-            if facet in permitted_facets or '*' in permitted_facets:
-                facets[facet] = self.resources['facets'][facet]
-
-        return facets
-
-    def dataproduct_permissions(self, identity):
-        """Return permitted dataproducts.
-
-        :param str identity: User identity
-        """
-        # get permitted dataproducts
-        permitted_dataproducts = self.permissions_handler.resource_permissions(
-            'dataproducts', identity
-        )
-
-        # return unique sorted dataproducts
-        return sorted(list(set(permitted_dataproducts)))
 
     def split_words(self, searchtext):
         return list(filter(None, re.split(self.word_split_re, searchtext)))

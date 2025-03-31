@@ -1,15 +1,20 @@
-from collections import OrderedDict
-import os
 import re
-from flask import json
 from uuid import UUID
-from sqlalchemy.sql import text as sql_text
+
+from flask import json
+from qwc_services_core.database import DatabaseEngine
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
-from qwc_services_core.database import DatabaseEngine
+from sqlalchemy.sql import text as sql_text
+
+from search_resources import SearchResources
+
+# Extract coords from bbox string like
+# BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
+BBOX_RE = re.compile(r'^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$')
 
 
-class SearchGeomService():
+class SearchGeomService:
     """SearchGeomService class
 
     Subset of Data Service for getting feature geometries.
@@ -24,8 +29,8 @@ class SearchGeomService():
 
         config_handler = RuntimeConfig("search", logger)
         config = config_handler.tenant_config(tenant)
-        self.resources = self._load_resources(config)
-        self.permissions_handler = PermissionsReader(tenant, logger)
+        permissions = PermissionsReader(tenant, logger)
+        self.resources = SearchResources(config, permissions)
 
         self.db_engine = DatabaseEngine()
         self.dbs = {}   # db connections with db_url as key
@@ -44,9 +49,10 @@ class SearchGeomService():
         :param str dataset: Dataset ID
         :param str filterexpr: JSON serialized array of filter expressions: [["<attr>", "=", "<value>"]]
         """
-        resource_cfg = self._search_permissions(identity).get(dataset)
-        if resource_cfg is not None and len(resource_cfg) == 1 \
-                and filterexpr is not None:
+        solr_facets = self.resources.solr_facets(identity)
+        resource_cfg = solr_facets.get(dataset)
+
+        if resource_cfg is not None and len(resource_cfg) == 1 and filterexpr is not None:
             # Column for feature ID. If unset, field from filterexpr is used
             self.primary_key = resource_cfg[0].get('search_id_col')
             # parse and validate input filter
@@ -67,26 +73,6 @@ class SearchGeomService():
             return {'feature_collection': feature_collection}
         else:
             return {'error': "Dataset not found or permission error"}
-
-    def _search_permissions(self, identity):
-        """Return permitted search facets.
-
-        :param str identity: User identity
-        """
-        # get permitted facets
-        permitted_facets = self.permissions_handler.resource_permissions(
-            'solr_facets', identity
-        )
-        # unique set
-        permitted_facets = set(permitted_facets)
-
-        # filter by permissions
-        facets = {}
-        for facet in self.resources['facets']:
-            if facet in permitted_facets or '*' in permitted_facets:
-                facets[facet] = self.resources['facets'][facet]
-
-        return facets
 
     def _index(self, filterexpr, cfg):
         """Find features by filter query.
@@ -220,24 +206,3 @@ class SearchGeomService():
             'geometry': json.loads(row['json_geom'] or 'null'),
             'properties': {}
         }
-
-    def _load_resources(self, config):
-        """Load service resources from config.
-
-        :param RuntimeConfig config: Config handler
-        """
-        # collect service resources (group by facet name)
-        facets = {}
-        for facet in config.resources().get('facets', []):
-            if facet['name'] not in facets:
-                facets[facet['name']] = []
-            facets[facet['name']].append(facet)
-
-        return {
-            'facets': facets
-        }
-
-
-# Extract coords from bbox string like
-# BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
-BBOX_RE = re.compile(r'^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$')
