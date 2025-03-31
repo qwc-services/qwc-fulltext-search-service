@@ -290,7 +290,7 @@ class SolrClient:
         # filter by permissions
         facets = {}
         for facet in self.resources['facets']:
-            if facet in permitted_facets:
+            if facet in permitted_facets or '*' in permitted_facets:
                 facets[facet] = self.resources['facets'][facet]
 
         return facets

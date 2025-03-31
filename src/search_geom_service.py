@@ -4,6 +4,7 @@ import re
 from flask import json
 from uuid import UUID
 from sqlalchemy.sql import text as sql_text
+from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
 from qwc_services_core.database import DatabaseEngine
 
@@ -24,6 +25,8 @@ class SearchGeomService():
         config_handler = RuntimeConfig("search", logger)
         config = config_handler.tenant_config(tenant)
         self.resources = self._load_resources(config)
+        self.permissions_handler = PermissionsReader(tenant, logger)
+
         self.db_engine = DatabaseEngine()
         self.dbs = {}   # db connections with db_url as key
         self.default_db_url = config.get('db_url')
@@ -41,7 +44,7 @@ class SearchGeomService():
         :param str dataset: Dataset ID
         :param str filterexpr: JSON serialized array of filter expressions: [["<attr>", "=", "<value>"]]
         """
-        resource_cfg = self.resources['facets'].get(dataset)  # TODO: check permissions
+        resource_cfg = self._search_permissions(identity).get(dataset)
         if resource_cfg is not None and len(resource_cfg) == 1 \
                 and filterexpr is not None:
             # Column for feature ID. If unset, field from filterexpr is used
@@ -64,6 +67,26 @@ class SearchGeomService():
             return {'feature_collection': feature_collection}
         else:
             return {'error': "Dataset not found or permission error"}
+
+    def _search_permissions(self, identity):
+        """Return permitted search facets.
+
+        :param str identity: User identity
+        """
+        # get permitted facets
+        permitted_facets = self.permissions_handler.resource_permissions(
+            'solr_facets', identity
+        )
+        # unique set
+        permitted_facets = set(permitted_facets)
+
+        # filter by permissions
+        facets = {}
+        for facet in self.resources['facets']:
+            if facet in permitted_facets or '*' in permitted_facets:
+                facets[facet] = self.resources['facets'][facet]
+
+        return facets
 
     def _index(self, filterexpr, cfg):
         """Find features by filter query.
