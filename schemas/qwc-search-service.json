@@ -28,6 +28,20 @@
           "description": "SOLR service URL",
           "type": "string"
         },
+        "solr_service_auth": {
+          "description": "SOLR service basic authentication. Default: None",
+          "type": "object",
+          "properties": {
+            "username": {
+              "description": "Username for SOLR service authentication",
+              "type": "string"
+            },
+            "password": {
+              "description": "Password for SOLR service authentication",
+              "type": "string"
+            }
+          }
+        },
         "search_result_sort": {
           "description": "Search result ordering for solr search results. Default: search_result_sort",
           "type": "string"
