@@ -28,6 +28,10 @@ Example:
   "config": {
     "search_backend": "solr",
     "solr_service_url": "http://localhost:8983/solr/gdi/select",
+    "solr_service_auth": {
+      "username": "solr",
+      "password": "SolrRocks"
+    },
     "search_result_sort": "score desc, sort asc",
     "word_split_re": "[\\s,.:;\"]+",
     "search_result_limit": 50,

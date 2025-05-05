@@ -33,6 +33,13 @@ class SolrClient:
 
         self.solr_service_url = config.get(
             'solr_service_url', 'http://localhost:8983/solr/gdi/select')
+
+        self.solr_service_auth = config.get('solr_service_auth', None)
+
+        if self.solr_service_auth:
+            self.solr_service_auth = (self.solr_service_auth.get('username'),
+                                      self.solr_service_auth.get('password'))
+
         self.word_split_re = re.compile(
             config.get('word_split_re', r'[\s,.:;"]+')
         )
@@ -85,6 +92,7 @@ class SolrClient:
             self.solr_service_url,
             params="omitHeader=true&facet=true&facet.field=facet&sort=" +
                    self.search_result_sort + "&rows={}&{}&{}".format(limit, q, fq),
+            auth=self.solr_service_auth,
             timeout=10)
         self.logger.debug("Sending Solr query %s" % response.url)
         self.logger.info("Search words: %s", ','.join(tokens))
