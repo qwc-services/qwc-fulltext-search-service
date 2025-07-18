@@ -138,7 +138,7 @@ If you encounter permission problems with the solr service then try the followin
 
 ### Trgm backend
 
-You can choose the solr backend by setting
+You can choose the trgm backend by setting
 
     "search_backend": "trgm"
 
