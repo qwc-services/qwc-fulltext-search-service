@@ -147,3 +147,50 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(len(data["result_counts"]), 1)
         self.assertEqual(data["result_counts"][0]["count"], -1)
         self.assertEqual(data["result_counts"][0]["filterword"], "Test")
+
+    def test_search_templates(self):
+        # Test API with Trigram backend and dummy templated SQL queries
+        os.environ["SEARCH_BACKEND"] = "trgm"
+        os.environ["TRGM_FEATURE_QUERY_TEMPLATE"] = "UNION ALL".join(list(map(lambda x: """
+            SELECT
+                '{{searchtext}}' AS display,
+                %d AS feature_id,
+                'test_dataset' AS facet_id,
+                'test_dataset_id' AS id_field_name,
+                TRUE AS id_in_quotes,
+                '[-180,-90,180,90]' AS bbox,
+                'EPSG:4326' AS srid
+        """ % x[0], enumerate([None] * 20))))
+
+        os.environ["TRGM_LAYER_QUERY_TEMPLATE"] = """
+            SELECT
+                '{{searchtext}}' AS display,
+                'test_dataproduct' AS dataproduct_id,
+                True AS dset_info,
+                'foreground' AS stacktype,
+                 '[{"dataproduct_id": "test_dataproduct_sublayer", "display": "Test sublayer", "dset_info": true}]' AS sublayers
+        """
+        os.environ["SEARCH_RESULT_LIMIT"] = "10"
+
+        # Test result returned for matching filter
+        status_code, json_data = self.get(
+            '/fts/?filter=test_dataset,foreground&searchtext=searchstring\'$')
+        data = json.loads(json_data)
+        self.assertEqual(200, status_code, "Status code is not OK")
+        self.assertEqual(len(data["results"]), 11)
+
+        self.assertEqual(self.feature_result_count(data), 20)
+        self.assertEqual(self.layer_result_count(data), 1)
+        self.assertEqual(len(data["result_counts"]), 2)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Test", data["result_counts"]))), 1)
+        self.assertEqual(len(list(filter(lambda rc: rc["filterword"] == "Map", data["result_counts"]))), 1)
+
+        features = list(filter(lambda result: result.get("feature", None), data["results"]))
+        self.assertEqual(len(features), 10)
+        feature = features[0]["feature"]
+        self.assertEqual(feature['display'], 'searchstring\'$')
+
+        dataproducts = list(filter(lambda result: result.get("dataproduct", None), data["results"]))
+        self.assertEqual(len(dataproducts), 1)
+        dataproduct = dataproducts[0]["dataproduct"]
+        self.assertEqual(dataproduct['display'], 'searchstring\'$')
