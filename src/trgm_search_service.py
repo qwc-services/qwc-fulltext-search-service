@@ -8,7 +8,7 @@ from jinja2 import Template
 from qwc_services_core.database import DatabaseEngine
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
-from sqlalchemy.sql import text as sql_text
+from sqlalchemy.sql import text as sql_text, literal
 
 from search_resources import SearchResources
 
@@ -57,6 +57,12 @@ class TrgmClient:
         self.layer_query_template = config.get('trgm_layer_query_template')
         self.similarity_threshold = config.get('trgm_similarity_threshold', 0.3)
 
+    def sql_escape(self, string):
+        return str(literal(str(string)).compile(
+            dialect=self.db_engine.db_engine(self.db_url).dialect,
+            compile_kwargs={"literal_binds": True}
+        ))[1:-1]
+
     def search(self, identity, searchtext, searchfilter, limit):
         (filterword, tokens) = self.tokenize(searchtext)
         if not tokens:
@@ -65,13 +71,13 @@ class TrgmClient:
             searchfilter = [self.filterwords.get(filterword)]
 
         # Determine permitted facets and dataproducts
-        solr_facets = self.resources.solr_facets(identity)
+        search_facets = self.resources.solr_facets(identity)
         permitted_dataproducts = self.resources.dataproducts(identity)
         if not searchfilter:
             # use all permitted facets if filter is empty
-            search_facets = list(solr_facets.keys())
+            search_facets = list(search_facets.keys())
         else:
-            search_facets = [facet for facet in searchfilter if facet in solr_facets]
+            search_facets = [facet for facet in searchfilter if facet in search_facets]
 
         search_ds = list(filter(lambda facet: facet not in ["foreground", "background"], search_facets))
         search_dp = list(filter(lambda facet: facet in ["foreground", "background"], search_facets))
@@ -85,7 +91,9 @@ class TrgmClient:
         layer_query = self.layer_query
         if self.layer_query_template:
             layer_query = Template(self.layer_query_template).render(
-                searchtext=searchtext, words=tokens, facets=search_dp
+                searchtext=self.sql_escape(searchtext),
+                words=list(map(self.sql_escape, tokens)),
+                facets=search_dp
             )
             self.logger.debug("Generated layer query from template")
 
@@ -94,7 +102,10 @@ class TrgmClient:
             # NOTE: facet_search_limit + 1: we limit results to facet_search_limit below, but pass + 1 here to
             # be able to detect whether there were actually more results than facet_search_limit
             feature_query = Template(self.feature_query_template).render(
-                searchtext=searchtext, words=tokens, facets=search_ds, facetlimit=self.facet_search_limit + 1
+                searchtext=self.sql_escape(searchtext),
+                words=list(map(self.sql_escape, tokens)),
+                facets=search_ds,
+                facetlimit=self.facet_search_limit + 1
             )
             self.logger.debug("Generated feature query from template")
 
