@@ -70,6 +70,9 @@ class ApiTestCase(unittest.TestCase):
         """
         os.environ["SEARCH_RESULT_LIMIT"] = "10"
 
+        # Ensure tenant handler cache is empty
+        server.tenant_handler.handler_cache = {}
+
         # Test result returned for matching filter
         status_code, json_data = self.get(
             '/fts/?filter=test_dataset,foreground&searchtext=searchstring')
@@ -171,6 +174,9 @@ class ApiTestCase(unittest.TestCase):
                  '[{"dataproduct_id": "test_dataproduct_sublayer", "display": "Test sublayer", "dset_info": true}]' AS sublayers
         """
         os.environ["SEARCH_RESULT_LIMIT"] = "10"
+
+        # Ensure tenant handler cache is empty
+        server.tenant_handler.handler_cache = {}
 
         # Test result returned for matching filter
         status_code, json_data = self.get(
