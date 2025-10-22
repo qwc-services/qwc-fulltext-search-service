@@ -8,7 +8,7 @@ from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
 from flask import json, request
 from jinja2 import Template
-from sqlalchemy.sql import text as sql_text
+from sqlalchemy.sql import text as sql_text, literal
 
 
 FILTERWORD_CHARS = os.environ.get('FILTERWORD_CHARS', r'\w.')
@@ -53,6 +53,12 @@ class TrgmClient:
         self.layer_query_template = config.get('trgm_layer_query_template')
         self.similarity_threshold = config.get('trgm_similarity_threshold', 0.3)
 
+    def sql_escape(self, string):
+        return str(literal(str(string)).compile(
+            dialect=self.db_engine.db_engine(self.db_url).dialect,
+            compile_kwargs={"literal_binds": True}
+        ))[1:-1]
+
     def search(self, identity, searchtext, filter, limit):
         (filterword, tokens) = self.tokenize(searchtext)
         if not tokens:
@@ -79,12 +85,18 @@ class TrgmClient:
         # Prepare query
         layer_query = self.layer_query
         if self.layer_query_template:
-            layer_query = Template(self.layer_query_template).render(searchtext=searchtext, words=tokens)
+            layer_query = Template(self.layer_query_template).render(
+                searchtext=self.sql_escape(searchtext),
+                words=list(map(self.sql_escape, tokens))
+            )
             self.logger.debug("Generated layer query from template")
 
         feature_query = self.feature_query
         if self.feature_query_template:
-            feature_query = Template(self.feature_query_template).render(searchtext=searchtext, words=tokens, facets=search_ds)
+            feature_query = Template(self.feature_query_template).render(
+                searchtext=self.sql_escape(searchtext),
+                words=list(map(self.sql_escape, tokens)),
+                facets=search_ds)
             self.logger.debug("Generated feature query from template")
 
         # Perform search
