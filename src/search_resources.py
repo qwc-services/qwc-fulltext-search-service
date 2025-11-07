@@ -17,14 +17,12 @@ class SearchResources:
         """
         # collect service resources (group by facet name)
         facets = {}
-        for facet in config.resources().get('facets', []):
-            if facet['name'] not in facets:
-                facets[facet['name']] = []
-            facets[facet['name']].append(facet)
+        for facet in config.resources().get("facets", []):
+            if facet["name"] not in facets:
+                facets[facet["name"]] = []
+            facets[facet["name"]].append(facet)
 
-        return {
-            'facets': facets
-        }
+        return {"facets": facets}
 
     def solr_facets(self, identity):
         """Return permitted search facets.
@@ -33,13 +31,13 @@ class SearchResources:
         """
         # get permitted facets
         permitted_facets = self.permissions.resource_permissions(
-            'solr_facets', identity
+            "solr_facets", identity
         )
-        all_facets_permitted = '*' in permitted_facets
+        all_facets_permitted = "*" in permitted_facets
 
         facets = {}
 
-        for facet, config in self.resources['facets'].items():
+        for facet, config in self.resources["facets"].items():
             if all_facets_permitted or facet in permitted_facets:
                 facets[facet] = config
 
@@ -52,7 +50,7 @@ class SearchResources:
         """
         # get permitted dataproducts
         permitted_dataproducts = self.permissions.resource_permissions(
-            'dataproducts', identity
+            "dataproducts", identity
         )
 
         # return unique sorted dataproducts

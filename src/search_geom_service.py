@@ -11,7 +11,9 @@ from search_resources import SearchResources
 
 # Extract coords from bbox string like
 # BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
-BBOX_RE = re.compile(r'^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$')
+BBOX_RE = re.compile(
+    r"^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$"
+)
 
 
 class SearchGeomService:
@@ -33,11 +35,11 @@ class SearchGeomService:
         self.resources = SearchResources(config, permissions)
 
         self.db_engine = DatabaseEngine()
-        self.dbs = {}   # db connections with db_url as key
-        self.default_db_url = config.get('db_url')
+        self.dbs = {}  # db connections with db_url as key
+        self.default_db_url = config.get("db_url")
 
     def _get_db(self, cfg):
-        db_url = cfg.get('db_url', self.default_db_url)
+        db_url = cfg.get("db_url", self.default_db_url)
         if db_url not in self.dbs:
             self.dbs[db_url] = self.db_engine.db_engine(db_url)
         return self.dbs[db_url]
@@ -52,17 +54,21 @@ class SearchGeomService:
         solr_facets = self.resources.solr_facets(identity)
         resource_cfg = solr_facets.get(dataset)
 
-        if resource_cfg is not None and len(resource_cfg) == 1 and filterexpr is not None:
+        if (
+            resource_cfg is not None
+            and len(resource_cfg) == 1
+            and filterexpr is not None
+        ):
             # Column for feature ID. If unset, field from filterexpr is used
-            self.primary_key = resource_cfg[0].get('search_id_col')
+            self.primary_key = resource_cfg[0].get("search_id_col")
             # parse and validate input filter
             filterexpr = self._parse_filter(filterexpr)
             if filterexpr[0] is None:
                 return {
-                    'error': "Invalid filter expression: " + filterexpr[1],
-                    'error_code': 400
+                    "error": "Invalid filter expression: " + filterexpr[1],
+                    "error_code": 400,
                 }
-            facet_column = resource_cfg[0].get('facet_column')
+            facet_column = resource_cfg[0].get("facet_column")
             # Append dataset where clause for search view
             if facet_column:
                 sql = " AND ".join([filterexpr[0], '"%s"=:vs' % facet_column])
@@ -70,9 +76,9 @@ class SearchGeomService:
                 filterexpr = (sql, filterexpr[1])
 
             feature_collection = self._index(filterexpr, resource_cfg[0])
-            return {'feature_collection': feature_collection}
+            return {"feature_collection": feature_collection}
         else:
-            return {'error': "Dataset not found or permission error"}
+            return {"error": "Dataset not found or permission error"}
 
     def _index(self, filterexpr, cfg):
         """Find features by filter query.
@@ -80,15 +86,14 @@ class SearchGeomService:
         :param (sql, params) filterexpr: A filter expression as a tuple (sql_expr, bind_params)
         """
         db = self._get_db(cfg)
-        table_name = cfg.get('table_name', 'search_v')
-        geometry_column = cfg.get('geometry_column', 'geom')
+        table_name = cfg.get("table_name", "search_v")
+        geometry_column = cfg.get("geometry_column", "geom")
 
         # build query SQL
 
         # select id
-        columns = ', '.join(['"%s"' % self.primary_key])
-        quoted_table = '.'.join(
-            map(lambda s: '"%s"' % s, table_name.split('.')))
+        columns = ", ".join(['"%s"' % self.primary_key])
+        quoted_table = ".".join(map(lambda s: '"%s"' % s, table_name.split(".")))
 
         where_clauses = []
         params = {}
@@ -97,18 +102,23 @@ class SearchGeomService:
             where_clauses.append(filterexpr[0])
             params.update(filterexpr[1])
 
-        where_clause = "WHERE " + " AND ".join(
-            where_clauses) if where_clauses else ""
+        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
-        sql = sql_text("""
+        sql = sql_text(
+            """
             SELECT {columns},
                 ST_AsGeoJSON(ST_CurveToLine("{geom}")) AS json_geom,
                 ST_Srid("{geom}") AS srid,
                 ST_Extent("{geom}") OVER () AS bbox_
             FROM {table}
             {where_clause}
-        """.format(columns=columns, geom=geometry_column,
-                   table=quoted_table, where_clause=where_clause))
+        """.format(
+                columns=columns,
+                geom=geometry_column,
+                table=quoted_table,
+                where_clause=where_clause,
+            )
+        )
 
         # connect to database and start transaction (for read-only access)
         conn = db.connect()
@@ -123,32 +133,36 @@ class SearchGeomService:
         for row in result:
             # NOTE: feature CRS removed by marshalling
             features.append(self._feature_from_query(row))
-            srid = row['srid']
-            bbox = row['bbox_']
+            srid = row["srid"]
+            bbox = row["bbox_"]
 
         if bbox:
             m = BBOX_RE.match(bbox)
             # xmin, ymin, xmax, ymax
-            bbox = [float(m.group(1)), float(m.group(3)),
-                    float(m.group(5)), float(m.group(7))]
+            bbox = [
+                float(m.group(1)),
+                float(m.group(3)),
+                float(m.group(5)),
+                float(m.group(7)),
+            ]
 
         # roll back transaction and close database connection
         trans.rollback()
         conn.close()
 
         return {
-            'type': 'FeatureCollection',
-            'crs': {
-                'type': 'name',
-                'properties': {
+            "type": "FeatureCollection",
+            "crs": {
+                "type": "name",
+                "properties": {
                     # NOTE: return CRS name as EPSG:xxxx and not as OGC URN
                     #       to work with QWC2 dataset search
-                    'name': 'EPSG:%d' % srid
+                    "name": "EPSG:%d" % srid
                     # 'name': 'urn:ogc:def:crs:EPSG::%d' % srid
-                }
+                },
             },
-            'features': features,
-            'bbox': bbox
+            "features": features,
+            "bbox": bbox,
         }
 
     def _parse_filter(self, filterstr):
@@ -201,8 +215,8 @@ class SearchGeomService:
             pk = str(pk)
 
         return {
-            'type': 'Feature',
-            'id': pk,
-            'geometry': json.loads(row['json_geom'] or 'null'),
-            'properties': {}
+            "type": "Feature",
+            "id": pk,
+            "geometry": json.loads(row["json_geom"] or "null"),
+            "properties": {},
         }
