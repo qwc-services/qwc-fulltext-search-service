@@ -8,7 +8,8 @@ from jinja2 import Template
 from qwc_services_core.database import DatabaseEngine
 from qwc_services_core.permissions_reader import PermissionsReader
 from qwc_services_core.runtime_config import RuntimeConfig
-from sqlalchemy.sql import text as sql_text, literal
+from sqlalchemy.sql import literal
+from sqlalchemy.sql import text as sql_text
 
 from search_resources import SearchResources
 
@@ -16,7 +17,7 @@ FILTERWORD_CHARS = os.environ.get("FILTERWORD_CHARS", r"\w.")
 FILTERWORD_RE = re.compile(f"^([{FILTERWORD_CHARS}]+):\b*")
 
 
-class TrgmClient:
+class PgClient:
     """SolrClient class"""
 
     def __init__(self, tenant, logger):
@@ -32,7 +33,9 @@ class TrgmClient:
 
         self.word_split_re = re.compile(config.get("word_split_re", r'[\s,.:;"]+'))
         self.default_search_limit = config.get("search_result_limit", 50)
-        self.facet_search_limit = config.get("trgm_facet_search_limit", 50)
+        self.facet_search_limit = config.get(
+            "pg_facet_search_limit", config.get("trgm_facet_search_limit", 50)
+        )
 
         self.facets = dict(
             map(
@@ -52,11 +55,19 @@ class TrgmClient:
 
         self.db_engine = DatabaseEngine()
         self.db_url = config.get("db_url")
-        self.filter_word_query = config.get("trgm_filter_word_query")
-        self.feature_query = config.get("trgm_feature_query")
-        self.feature_query_template = config.get("trgm_feature_query_template")
-        self.layer_query = config.get("trgm_layer_query")
-        self.layer_query_template = config.get("trgm_layer_query_template")
+        self.filter_word_query = config.get(
+            "pg_filter_word_query", config.get("trgm_filter_word_query")
+        )
+        self.feature_query = config.get(
+            "pg_feature_query", config.get("trgm_feature_query")
+        )
+        self.feature_query_template = config.get(
+            "pg_feature_query_template", config.get("trgm_feature_query_template")
+        )
+        self.layer_query = config.get("pg_layer_query", config.get("trgm_layer_query"))
+        self.layer_query_template = config.get(
+            "pg_layer_query_template", config.get("trgm_layer_query_template")
+        )
         self.similarity_threshold = config.get("trgm_similarity_threshold", 0.3)
 
     def sql_escape(self, string):
