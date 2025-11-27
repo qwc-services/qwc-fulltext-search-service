@@ -10,9 +10,9 @@ from qwc_services_core.tenant_handler import (
     TenantSessionInterface,
 )
 
+from pg_search_service import PgClient  # noqa: E402
 from search_geom_service import SearchGeomService  # noqa: E402
 from solr_search_service import SolrClient  # noqa: E402
-from trgm_search_service import TrgmClient  # noqa: E402
 
 # Flask application
 app = Flask(__name__)
@@ -102,10 +102,10 @@ def search_handler():
         config_handler = RuntimeConfig("search", app.logger)
         config = config_handler.tenant_config(tenant)
         search_backend = config.get("search_backend")
-        if search_backend == "trgm":
-            app.logger.debug("Using trgm search backend")
+        if search_backend == "pg" or search_backend == "trgm":
+            app.logger.debug("Using PG search backend")
             handler = tenant_handler.register_handler(
-                "fts", tenant, TrgmClient(tenant, app.logger)
+                "fts", tenant, PgClient(tenant, app.logger)
             )
         else:
             if search_backend and search_backend != "solr":

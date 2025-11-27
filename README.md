@@ -136,13 +136,13 @@ If you encounter permission problems with the solr service then try the followin
 
     chown 8983:8983 volumes/solr/data
 
-### Trgm backend
+### Postgres backend
 
-You can choose the trgm backend by setting
+You can choose the pg backend by setting
 
-    "search_backend": "trgm"
+    "search_backend": "pg"
 
-and setting the `trgm_feature_query`, `trgm_layer_query`, `trgm_similarity_threshold` variables. See also the [Search chapter in the qwc-services documentation](https://qwc-services.github.io/master/topics/Search/#configuring-the-fulltext-search-service).
+and setting the `pg_feature_query`, `pg_layer_query` variables. See also the [Search chapter in the qwc-services documentation](https://qwc-services.github.io/master/topics/Search/#configuring-the-fulltext-search-service).
 
 ### Environment variables
 
@@ -150,16 +150,16 @@ Config options in the config file can be overridden by equivalent uppercase envi
 
 | Variable                    | Description                              | Default value                           |
 |-----------------------------|------------------------------------------|-----------------------------------------|
-| SEARCH_BACKEND              | Search backend                           | `solr`                                  |
+| SEARCH_BACKEND              | Search backend, 'solr' or 'pg'           | `solr`                                  |
 | SOLR_SERVICE_URL            | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
 | WORD_SPLIT_RE               | Word split Regex                         | `[\s,.:;"]+`                            |
 | SEARCH_RESULT_LIMIT         | Result count limit per search            | `50`                                    |
 | SEARCH_RESULT_SORT          | Sorting of search results (solr backend) | `score desc, sort asc`                  |
 | DB_URL                      | DB connection for search geometries view |                                         |
-| TRGM_FEATURE_QUERY          | Feature query SQL (trigram backend)      |                                         |
-| TRGM_FEATURE_QUERY_TEMPLATE | Feature query SQL Jinja template (trigram backend) |                               |
-| TRGM_LAYER_QUERY_TEMPLATE   | Layer query SQL Jinja template (trigram backend)   |                               |
-| TRGM_SIMILARITY_THRESHOLD   | Trigram similarity treshold (trigram backend) | `0.3`                              |
+| PG_FEATURE_QUERY            | Feature query SQL (pg backend)           |                                         |
+| PG_FEATURE_QUERY_TEMPLATE   | Feature query SQL Jinja template (pg backend) |                                    |
+| PG_FEATURE_QUERY            | Feature query SQL (pg backend)           |                                         |
+| TRGM_SIMILARITY_THRESHOLD   | Trigram similarity treshold (pg backend) | `0.3`                                   |
 
 
 Usage/Development
@@ -208,4 +208,4 @@ Testing
 
 Run all tests:
 
-    python test.py
+    PYTHONPATH=$PWD/src uv run test.py
