@@ -167,8 +167,6 @@ To use configs from a `qwc-docker` setup, set `CONFIG_PATH=<...>/qwc-docker/volu
 
 Set `FLASK_DEBUG=1` for additional debug output.
 
-Set `SKIP_LOGIN=1` if running without an authentication service (i.e. for development).
-
 Set `FLASK_RUN_PORT=<port>` to change the default port (default: `5000`).
 
 API documentation:
