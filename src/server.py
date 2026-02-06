@@ -1,4 +1,5 @@
 import logging
+import os
 
 from flask import Flask, jsonify, request
 from flask_restx import Api, Resource
@@ -210,4 +211,4 @@ def healthz():
 if __name__ == "__main__":
     print("Starting Search service...")
     app.logger.setLevel(logging.DEBUG)
-    app.run(host="localhost", port=5011, debug=True)
+    app.run(host="localhost", port=os.environ.get("FLASK_RUN_PORT", 5000), debug=True)
