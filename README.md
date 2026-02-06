@@ -59,6 +59,16 @@ Example:
 }
 ```
 
+### Environment variables
+
+Config options in the config file can be overridden by equivalent uppercase environment variables.
+
+In addition, the following environment variables are supported:
+
+| Name                 | Default       | Description                                                   |
+|----------------------|---------------|---------------------------------------------------------------|
+| `FILTERWORD_CHARS  ` | `\w.`         | Characters which should be captured in the filter word regex. |
+
 ### Permissions
 
 * [JSON schema](https://github.com/qwc-services/qwc-services-core/blob/master/schemas/qwc-services-permissions.json)
@@ -144,64 +154,40 @@ You can choose the pg backend by setting
 
 and setting the `pg_feature_query`, `pg_layer_query` variables. See also the [Search chapter in the qwc-services documentation](https://qwc-services.github.io/master/topics/Search/#configuring-the-fulltext-search-service).
 
-### Environment variables
+Run locally
+-----------
 
-Config options in the config file can be overridden by equivalent uppercase environment variables.
+Install dependencies and run:
 
-| Variable                    | Description                              | Default value                           |
-|-----------------------------|------------------------------------------|-----------------------------------------|
-| SEARCH_BACKEND              | Search backend, 'solr' or 'pg'           | `solr`                                  |
-| SOLR_SERVICE_URL            | SOLR service URL                         | `http://localhost:8983/solr/gdi/select` |
-| WORD_SPLIT_RE               | Word split Regex                         | `[\s,.:;"]+`                            |
-| SEARCH_RESULT_LIMIT         | Result count limit per search            | `50`                                    |
-| SEARCH_RESULT_SORT          | Sorting of search results (solr backend) | `score desc, sort asc`                  |
-| DB_URL                      | DB connection for search geometries view |                                         |
-| PG_FEATURE_QUERY            | Feature query SQL (pg backend)           |                                         |
-| PG_FEATURE_QUERY_TEMPLATE   | Feature query SQL Jinja template (pg backend) |                                    |
-| PG_FEATURE_QUERY            | Feature query SQL (pg backend)           |                                         |
-| TRGM_SIMILARITY_THRESHOLD   | Trigram similarity treshold (pg backend) | `0.3`                                   |
-
-
-Usage/Development
------------------
-
-Set the `CONFIG_PATH` environment variable to the path containing the service config and permission files when starting this service (default: `config`).
-
-    export CONFIG_PATH=../qwc-docker/volumes/config
-
-Overide configurations, if necessary:
-
+    export CONFIG_PATH=<CONFIG_PATH>
     export SOLR_SERVICE_URL=http://localhost:8983/solr/gdi/select
-
-Configure environment:
-
-    echo FLASK_ENV=development >.flaskenv
-
-Install dependencies and start service:
-
     uv run src/server.py
 
-Search base URL:
+To use configs from a `qwc-docker` setup, set `CONFIG_PATH=<...>/qwc-docker/volumes/config`.
 
-    http://localhost:5011/
+Set `FLASK_DEBUG=1` for additional debug output.
 
-Search API:
+Set `SKIP_LOGIN=1` if running without an authentication service (i.e. for development).
 
-    http://localhost:5011/api/
+Set `FLASK_RUN_PORT=<port>` to change the default port (default: `5000`).
+
+API documentation:
+
+    http://localhost:5000/api/
 
 Examples:
 
-    curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=austr'
-    curl 'http://localhost:5011/fts/?searchtext=Country:austr'
-    curl 'http://localhost:5011/fts/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
-
-    curl -g 'http://localhost:5011/geom/ne_10m_admin_0_countries/?filter=[["ogc_fid","=",90]]'
+    curl 'http://localhost:5000/?filter=foreground,ne_10m_admin_0_countries&searchtext=austr'
+    curl 'http://localhost:5000/?searchtext=Country:austr'
+    curl 'http://localhost:5000/?filter=foreground,ne_10m_admin_0_countries&searchtext=qwc'
+    curl 'http://localhost:5000/geom/ne_10m_admin_0_countries/?filter=[["ogc_fid","=",90]]'
 
 Docker usage
 ------------
 
-See sample [docker-compose.yml](https://github.com/qwc-services/qwc-docker/blob/master/docker-compose-example.yml) of [qwc-docker](https://github.com/qwc-services/qwc-docker).
+The Docker image is published on [Dockerhub](https://hub.docker.com/r/sourcepole/qwc-fulltext-search-service).
 
+See sample [docker-compose.yml](https://github.com/qwc-services/qwc-docker/blob/master/docker-compose-example.yml) of [qwc-docker](https://github.com/qwc-services/qwc-docker).
 
 Testing
 -------
