@@ -2,7 +2,9 @@ import logging
 import os
 
 from flask import Flask, jsonify, request
-from flask_restx import Api, Resource
+from flask_restx import Resource
+from qwc_services_core.api import Api
+from qwc_services_core.app import app_nocache
 from qwc_services_core.auth import auth_manager, get_identity, optional_auth
 from qwc_services_core.runtime_config import RuntimeConfig
 from qwc_services_core.tenant_handler import (
@@ -17,15 +19,8 @@ from solr_search_service import SolrClient  # noqa: E402
 
 # Flask application
 app = Flask(__name__)
-
-
-# Root route must be before Api initialization
-@app.route("/")
-def search():
-    res = SearchResult(api)
-    return res.get()
-
-
+app_nocache(app)
+app.config['RESTX_NO_DEFAULT_ROOT_RULE'] = True
 api = Api(
     app,
     version="1.0",
@@ -131,7 +126,7 @@ def search_geom_handler():
     return handler
 
 
-@api.route("/fts/", "/")
+@api.route("/fts/", "/", endpoint='root')
 class SearchResult(Resource):
     @api.doc("search")
     @api.param("searchtext", "Search string with optional filter prefix")
