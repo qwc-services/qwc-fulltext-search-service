@@ -249,7 +249,10 @@ class PgClient:
                                     "id_in_quotes", None
                                 ),
                                 "bbox": json.loads(feature_result["bbox"])
-                                if feature_result["bbox"]
+                                if feature_result.get("bbox")
+                                else None,
+                                "center": json.loads(feature_result["center"])
+                                if feature_result.get("center")
                                 else None,
                                 "srid": feature_result["srid"],
                             }

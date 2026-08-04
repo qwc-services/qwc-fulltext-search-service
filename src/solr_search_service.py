@@ -208,6 +208,7 @@ class SolrClient:
         idfield_meta = json.loads(doc["idfield_meta"])
         idfield_str = idfield_meta[1].split(":")[1] == "y"
         bbox = json.loads(doc["bbox"]) if "bbox" in doc else None
+        center = json.loads(doc["center"]) if "center" in doc else None
         srid = doc.get("srid", None)
 
         facet = id[0]  # Solr index uses dataset id as facet
@@ -223,13 +224,13 @@ class SolrClient:
         for entry in solr_facets.get(facet, []):
             if self.check_filterword(filterword, entry):
                 return self._feature_rec(
-                    doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid
+                    doc, idfield_meta, facet, feature_id, idfield_str, bbox, center, srid
                 )
 
         return {}
 
     def _feature_rec(
-        self, doc, idfield_meta, facet, feature_id, idfield_str, bbox, srid
+        self, doc, idfield_meta, facet, feature_id, idfield_str, bbox, center, srid
     ):
         id_field_name = idfield_meta[0]
         feature = {
@@ -239,6 +240,7 @@ class SolrClient:
             "id_field_name": id_field_name,
             "id_field_type": idfield_str,
             "bbox": bbox,
+            "center": center,
             "srid": srid,
         }
         return {"feature": feature}
