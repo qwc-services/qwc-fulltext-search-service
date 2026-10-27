@@ -13,9 +13,9 @@ from qwc_services_core.tenant_handler import (
     TenantSessionInterface,
 )
 
-from pg_search_service import PgClient  # noqa: E402
-from search_geom_service import SearchGeomService  # noqa: E402
-from solr_search_service import SolrClient  # noqa: E402
+from pg_search_service import PgClient
+from search_geom_service import SearchGeomService
+from solr_search_service import SolrClient
 
 # Flask application
 app = Flask(__name__)
@@ -100,19 +100,12 @@ def search_handler():
         search_backend = config.get("search_backend")
         if search_backend == "pg" or search_backend == "trgm":
             app.logger.debug("Using PG search backend")
-            handler = tenant_handler.register_handler(
-                "fts", tenant, PgClient(tenant, app.logger)
-            )
+            handler = tenant_handler.register_handler("fts", tenant, PgClient(tenant, app.logger))
         else:
             if search_backend and search_backend != "solr":
-                app.logger.warn(
-                    "Unknown search backend specified: %s"
-                    % config.get("search_backend")
-                )
+                app.logger.warn(f"Unknown search backend specified: {config.get('search_backend')}")
             app.logger.debug("Using solr search backend")
-            handler = tenant_handler.register_handler(
-                "fts", tenant, SolrClient(tenant, app.logger)
-            )
+            handler = tenant_handler.register_handler("fts", tenant, SolrClient(tenant, app.logger))
     return handler
 
 
@@ -130,10 +123,7 @@ def search_geom_handler():
 class SearchResult(Resource):
     @api.doc("search")
     @api.param("searchtext", "Search string with optional filter prefix")
-    @api.param(
-        "filter",
-        'Comma separated list of dataproduct identifiers and keyword "dataproduct"',
-    )
+    @api.param("filter", 'Comma separated list of dataproduct identifiers and keyword "dataproduct"')
     @api.param("limit", "Max number of results")
     @optional_auth
     def get(self):
@@ -169,8 +159,7 @@ class SearchResult(Resource):
 class GeomResult(Resource):
     @api.doc("geom")
     @api.param(
-        "filter",
-        'JSON serialized array of filter expressions: `[["attr", "op", "value"], "and/or", ["attr", "op", "value"]]`',
+        "filter", 'JSON serialized array of filter expressions: `[["attr", "op", "value"], "and/or", ["attr", "op", "value"]]`'
     )
     @optional_auth
     def get(self, dataset):

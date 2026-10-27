@@ -1,5 +1,3 @@
-from qwc_services_core.runtime_config import RuntimeConfig
-
 
 class SearchResources:
     """
@@ -35,11 +33,11 @@ class SearchResources:
         )
         all_facets_permitted = "*" in permitted_facets
 
-        facets = {}
-
-        for facet, config in self.resources["facets"].items():
-            if all_facets_permitted or facet in permitted_facets:
-                facets[facet] = config
+        facets = {
+            facet: config
+            for facet, config in self.resources["facets"].items()
+            if all_facets_permitted or facet in permitted_facets
+        }
 
         return facets
 
@@ -54,4 +52,4 @@ class SearchResources:
         )
 
         # return unique sorted dataproducts
-        return sorted(list(set(permitted_dataproducts)))
+        return sorted(set(permitted_dataproducts))

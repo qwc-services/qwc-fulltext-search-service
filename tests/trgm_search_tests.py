@@ -2,7 +2,7 @@ import json
 import os
 import unittest
 
-from flask import Response, json
+from flask import Response
 from flask.testing import FlaskClient
 from flask_jwt_extended import JWTManager, create_access_token
 
@@ -24,7 +24,7 @@ class ApiTestCase(unittest.TestCase):
     def jwtHeader(self):
         with server.app.test_request_context():
             access_token = create_access_token("test")
-        return {"Authorization": "Bearer {}".format(access_token)}
+        return {"Authorization": f"Bearer {access_token}"}
 
     def get(self, url):
         """Send GET request and return status code and decoded JSON from
@@ -50,23 +50,17 @@ class ApiTestCase(unittest.TestCase):
     def test_search(self):
         # Test API with Trigram backend and dummy SQL queries
         os.environ["SEARCH_BACKEND"] = "trgm"
-        os.environ["TRGM_FEATURE_QUERY"] = "UNION ALL".join(
-            list(
-                map(
-                    lambda x: """
-            SELECT
-                :term AS display,
-                %d AS feature_id,
-                'test_dataset' AS facet_id,
-                'test_dataset_id' AS id_field_name,
-                TRUE AS id_in_quotes,
-                '[-180,-90,180,90]' AS bbox,
-                'EPSG:4326' AS srid
-        """
-                    % x[0],
-                    enumerate([None] * 20),
-                )
-            )
+        os.environ["TRGM_FEATURE_QUERY"] = "UNION ALL".join([
+            f"""
+                SELECT
+                    :term AS display,
+                    {x[0]} AS feature_id,
+                    'test_dataset' AS facet_id,
+                    'test_dataset_id' AS id_field_name,
+                    TRUE AS id_in_quotes,
+                    '[-180,-90,180,90]' AS bbox,
+                    'EPSG:4326' AS srid
+            """ for x in enumerate([None] * 20)]
         )
 
         os.environ["TRGM_LAYER_QUERY"] = """
@@ -116,7 +110,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(len(features), 10)
         feature = features[0]["feature"]
         self.assertEqual(feature["display"], "searchstring")
-        self.assertTrue(feature.get("feature_id", None) != None)
+        self.assertTrue(feature.get("feature_id", None) is not None)
         self.assertEqual(feature["dataproduct_id"], "test_dataset")
         self.assertEqual(feature["id_field_name"], "test_dataset_id")
         self.assertEqual(feature["id_field_type"], True)
@@ -215,24 +209,18 @@ class ApiTestCase(unittest.TestCase):
     def test_search_templates(self):
         # Test API with Trigram backend and dummy templated SQL queries
         os.environ["SEARCH_BACKEND"] = "trgm"
-        os.environ["TRGM_FEATURE_QUERY_TEMPLATE"] = "UNION ALL".join(
-            list(
-                map(
-                    lambda x: """
-            SELECT
-                '{{searchtext}}' AS display,
-                %d AS feature_id,
-                'test_dataset' AS facet_id,
-                'test_dataset_id' AS id_field_name,
-                TRUE AS id_in_quotes,
-                '[-180,-90,180,90]' AS bbox,
-                'EPSG:4326' AS srid
-        """
-                    % x[0],
-                    enumerate([None] * 20),
-                )
-            )
-        )
+        os.environ["TRGM_FEATURE_QUERY_TEMPLATE"] = "UNION ALL".join([
+            f"""
+                SELECT
+                    '{{{{searchtext}}}}' AS display,
+                    {x[0]} AS feature_id,
+                    'test_dataset' AS facet_id,
+                    'test_dataset_id' AS id_field_name,
+                    TRUE AS id_in_quotes,
+                    '[-180,-90,180,90]' AS bbox,
+                    'EPSG:4326' AS srid
+            """ for x in enumerate([None] * 20)
+        ])
 
         os.environ["TRGM_LAYER_QUERY_TEMPLATE"] = """
             SELECT

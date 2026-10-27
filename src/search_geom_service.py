@@ -11,9 +11,7 @@ from search_resources import SearchResources
 
 # Extract coords from bbox string like
 # BOX(2644230.6300308 1246806.79350726,2644465.86084414 1246867.82022007)
-BBOX_RE = re.compile(
-    r"^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$"
-)
+BBOX_RE = re.compile(r"^BOX\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?),(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$")
 
 
 class SearchGeomService:
@@ -54,11 +52,7 @@ class SearchGeomService:
         solr_facets = self.resources.solr_facets(identity)
         resource_cfg = solr_facets.get(dataset)
 
-        if (
-            resource_cfg is not None
-            and len(resource_cfg) == 1
-            and filterexpr is not None
-        ):
+        if resource_cfg is not None and len(resource_cfg) == 1 and filterexpr is not None:
             # Column for feature ID. If unset, field from filterexpr is used
             self.primary_key = resource_cfg[0].get("search_id_col")
             # parse and validate input filter
@@ -71,7 +65,7 @@ class SearchGeomService:
             facet_column = resource_cfg[0].get("facet_column")
             # Append dataset where clause for search view
             if facet_column:
-                sql = " AND ".join([filterexpr[0], '"%s"=:vs' % facet_column])
+                sql = " AND ".join([filterexpr[0], f'"{facet_column}"=:vs'])
                 filterexpr[1]["vs"] = dataset
                 filterexpr = (sql, filterexpr[1])
 
@@ -92,8 +86,8 @@ class SearchGeomService:
         # build query SQL
 
         # select id
-        columns = ", ".join(['"%s"' % self.primary_key])
-        quoted_table = ".".join(map(lambda s: '"%s"' % s, table_name.split(".")))
+        columns = ", ".join([f'"{self.primary_key}"'])
+        quoted_table = ".".join(f'"{s}"' for s in table_name.split("."))
 
         where_clauses = []
         params = {}
@@ -104,21 +98,14 @@ class SearchGeomService:
 
         where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
-        sql = sql_text(
-            """
+        sql = sql_text(f"""
             SELECT {columns},
-                ST_AsGeoJSON(ST_CurveToLine("{geom}")) AS json_geom,
-                ST_Srid("{geom}") AS srid,
-                ST_Extent("{geom}") OVER () AS bbox_
-            FROM {table}
+                ST_AsGeoJSON(ST_CurveToLine("{geometry_column}")) AS json_geom,
+                ST_Srid("{geometry_column}") AS srid,
+                ST_Extent("{geometry_column}") OVER () AS bbox_
+            FROM {quoted_table}
             {where_clause}
-        """.format(
-                columns=columns,
-                geom=geometry_column,
-                table=quoted_table,
-                where_clause=where_clause,
-            )
-        )
+        """)
 
         # connect to database and start transaction (for read-only access)
         conn = db.connect()
@@ -157,7 +144,7 @@ class SearchGeomService:
                 "properties": {
                     # NOTE: return CRS name as EPSG:xxxx and not as OGC URN
                     #       to work with QWC2 dataset search
-                    "name": "EPSG:%d" % srid
+                    "name": f"EPSG:{srid}"
                     # 'name': 'urn:ogc:def:crs:EPSG::%d' % srid
                 },
             },
@@ -174,11 +161,11 @@ class SearchGeomService:
 
         sql = []
         params = {}
-        if not type(filterarray) is list or len(filterarray) != 1:
+        if type(filterarray) is not list or len(filterarray) != 1:
             return (None, "Invalid filter expression")
         i = 0
         expr = filterarray[i]
-        if not type(expr) is list or len(expr) != 3:
+        if type(expr) is not list or len(expr) != 3:
             # Filter expr must have exactly three parts
             return (None, "Incorrect number of entries in filter expression")
         column_name = expr[0]
@@ -188,21 +175,21 @@ class SearchGeomService:
             self.primary_key = column_name
 
         op = expr[1].upper().strip()
-        if type(expr[1]) is not str or not op in ["="]:
+        if type(expr[1]) is not str or op not in ["="]:
             return (None, "Invalid operator")
 
         value = expr[2]
-        if not type(value) in [int, float, str]:
+        if type(value) not in [int, float, str]:
             return (None, "Invalid value")
 
-        sql.append('"%s" %s :v%d' % (column_name, op, i))
+        sql.append(f'"{column_name}" {op} :v{i}')
 
-        params["v%d" % i] = value
+        params[f"v{i}"] = value
 
         if not sql:
             return (None, "Empty expression")
         else:
-            return ("(%s)" % " ".join(sql), params)
+            return (f'({" ".join(sql)})', params)
 
     def _feature_from_query(self, row):
         """Build GeoJSON Feature from query result row.
