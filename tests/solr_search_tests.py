@@ -22,7 +22,7 @@ class SolrSearchTestCase(unittest.TestCase):
         query = self.search.query_str(tokens)
         self.assertEqual(expected, query, "Wrong Solr query")
 
-    def test_tokenizer(self):
+    def test_solr_tokenizer(self):
         self.check_tokens("SBB Areal", ["SBB", "Areal"])
         self.check_tokens("  SBB    Areal", ["SBB", "Areal"])
         self.check_tokens("SBB Areal, Olten", ["SBB", "Areal", "Olten"])
@@ -32,7 +32,7 @@ class SolrSearchTestCase(unittest.TestCase):
         self.check_tokens("Karte:SBB Areal:5", ["SBB", "Areal", "5"])
         self.check_tokens('SBB"Areal', ["SBB", "Areal"])
 
-    def test_search_queries(self):
+    def test_solr_search_queries(self):
         self.check_query(
             "grenz",
             'q=((search_1_stem:"grenz"^6 OR search_1_ngram:"grenz"^5)) OR ((search_2_stem:"grenz"^4 OR search_2_ngram:"grenz"^3)) OR ((search_3_stem:"grenz"^2 OR search_3_ngram:"grenz"^1))',  # noqa: E501
