@@ -67,21 +67,37 @@ class SolrClient:
         self.logger.debug(json.dumps(response, indent=2))
         permitted_dataproducts = self.resources.dataproducts(identity)
         results = []
-        num_solr_results_dp = 0
+        result_counts = {}
+        tot_result_count = 0
         for doc in response["response"]["docs"]:
+            facet = doc["facet"]
+            if facet not in result_counts:
+                result_counts[facet] = {
+                    # rename dataproduct_id to facet!
+                    "dataproduct_id": facet,
+                    "filterword": solr_facets.get(facet, {}).get("filter_word", facet),
+                    "count": 0
+                }
+            result = None
             if doc["facet"] == "foreground" or doc["facet"] == "background" or doc["facet"] == "dataproduct":
-                num_solr_results_dp += 1
                 result = self.layer_result(doc, permitted_dataproducts)
-                if result is not None:
-                    results.append(result)
             else:
-                results.append(self.feature_result(doc, filterword, solr_facets))
+                result = self.feature_result(doc, filterword, solr_facets)
+            if result:
+                result_counts[facet]["count"] += 1
+                tot_result_count += 1
+                if (
+                    (limit is None or tot_result_count <= limit)
+                    and result_counts[facet]["count"] <= facetlimit
+                ):
+                    results.append(result)
 
-        result_counts = self.result_counts(
-            response, filterword, num_solr_results_dp, solr_facets
-        )
+        for facet in result_counts:
+            # The search query limited the results, the true result count is not known
+            if result_counts[facet]["count"] >= facetlimit:
+                result_counts[facet]["count"] = -1
 
-        return {"results": results, "result_counts": result_counts}
+        return {"results": results, "result_counts": list(result_counts.values())}
 
     def query(self, tokens, filterword, filter_ids, limit, solr_facets):
         # https://lucene.apache.org/solr/guide/8_1/common-query-parameters.html
@@ -215,32 +231,6 @@ class SolrClient:
             "srid": srid,
         }
         return {"feature": feature}
-
-    def result_counts(self, response, filterword, num_solr_results_dp, solr_facets):
-        result_counts = []
-        facet_counts = response["facet_counts"]["facet_fields"]["facet"]
-        for i in range(0, len(facet_counts), 2):
-            count = facet_counts[i + 1]
-            if count > 0:
-                facet = facet_counts[i]
-                if facet == "foreground" or facet == "background" or facet == "dataproduct":
-                    # dataproduct Count from Solr does not consider permissions
-                    if count <= num_solr_results_dp:
-                        # Don't return count if all results already included
-                        continue
-                    count = None
-                # Return multiple results if facet is used for multiple dataproducts
-                result_counts.extend([
-                    {
-                        "dataproduct_id": facet,
-                        # rename dataproduct_id to facet!
-                        "filterword": entry["filter_word"],
-                        "count": count,
-                    }
-                    for entry in solr_facets.get(facet, [])
-                    if self.check_filterword(filterword, entry)
-                ])
-        return result_counts
 
     def check_filterword(self, filterword, entry):
         return not filterword or (entry["filter_word"].lower() == filterword.lower())

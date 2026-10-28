@@ -14,12 +14,7 @@ class SearchResources:
         :param RuntimeConfig config: Config handler
         """
         # collect service resources (group by facet name)
-        facets = {}
-        for facet in config.resources().get("facets", []):
-            if facet["name"] not in facets:
-                facets[facet["name"]] = []
-            facets[facet["name"]].append(facet)
-
+        facets = {facet["name"]: facet for facet in config.resources().get("facets", [])}
         return {"facets": facets}
 
     def solr_facets(self, identity):
@@ -28,9 +23,7 @@ class SearchResources:
         :param str identity: User identity
         """
         # get permitted facets
-        permitted_facets = self.permissions.resource_permissions(
-            "solr_facets", identity
-        )
+        permitted_facets = self.permissions.resource_permissions("solr_facets", identity)
         all_facets_permitted = "*" in permitted_facets
 
         facets = {
@@ -47,9 +40,7 @@ class SearchResources:
         :param str identity: User identity
         """
         # get permitted dataproducts
-        permitted_dataproducts = self.permissions.resource_permissions(
-            "dataproducts", identity
-        )
+        permitted_dataproducts = self.permissions.resource_permissions("dataproducts", identity)
 
         # return unique sorted dataproducts
         return sorted(set(permitted_dataproducts))
