@@ -47,10 +47,10 @@ class ApiTestCase(unittest.TestCase):
                 count += entry["count"]
         return count
 
-    def test_search(self):
+    def test_pg_search(self):
         # Test API with Trigram backend and dummy SQL queries
-        os.environ["SEARCH_BACKEND"] = "trgm"
-        os.environ["TRGM_FEATURE_QUERY"] = "UNION ALL".join([
+        os.environ["SEARCH_BACKEND"] = "pg"
+        os.environ["PG_FEATURE_QUERY"] = "UNION ALL".join([
             f"""
                 SELECT
                     :term AS display,
@@ -63,7 +63,7 @@ class ApiTestCase(unittest.TestCase):
             """ for x in enumerate([None] * 20)]
         )
 
-        os.environ["TRGM_LAYER_QUERY"] = """
+        os.environ["PG_LAYER_QUERY"] = """
             SELECT
                 :term AS display,
                 'test_dataproduct' AS dataproduct_id,
@@ -206,10 +206,10 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(data["result_counts"][0]["count"], -1)
         self.assertEqual(data["result_counts"][0]["filterword"], "Test")
 
-    def test_search_templates(self):
+    def test_pg_search_templates(self):
         # Test API with Trigram backend and dummy templated SQL queries
-        os.environ["SEARCH_BACKEND"] = "trgm"
-        os.environ["TRGM_FEATURE_QUERY_TEMPLATE"] = "UNION ALL".join([
+        os.environ["SEARCH_BACKEND"] = "pg"
+        os.environ["PG_FEATURE_QUERY_TEMPLATE"] = "UNION ALL".join([
             f"""
                 SELECT
                     '{{{{searchtext}}}}' AS display,
@@ -222,7 +222,7 @@ class ApiTestCase(unittest.TestCase):
             """ for x in enumerate([None] * 20)
         ])
 
-        os.environ["TRGM_LAYER_QUERY_TEMPLATE"] = """
+        os.environ["PG_LAYER_QUERY_TEMPLATE"] = """
             SELECT
                 '{{searchtext}}' AS display,
                 'test_dataproduct' AS dataproduct_id,
