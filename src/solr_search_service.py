@@ -105,7 +105,7 @@ class SolrClient:
             if result_counts[facet]["count"] >= facetlimit:
                 result_counts[facet]["count"] = -1
 
-        return {"results": results, "result_counts": list(result_counts.values())}
+        return {"results": results, "result_counts": list(result_counts.values()), "limit": limit or facetlimit}
 
     def query(self, tokens, filterword, filter_ids, limit, facetlimit, solr_facets):
         # https://lucene.apache.org/solr/guide/8_1/common-query-parameters.html

@@ -208,7 +208,7 @@ class PgClient:
             if result_counts[facet]["count"] >= facetlimit:
                 result_counts[facet]["count"] = -1
 
-        return {"results": results, "result_counts": list(result_counts.values())}
+        return {"results": results, "result_counts": list(result_counts.values()), "limit": limit or facetlimit}
 
     def tokenize(self, searchtext):
         match = FILTERWORD_RE.match(searchtext)
