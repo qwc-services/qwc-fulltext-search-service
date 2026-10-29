@@ -41,6 +41,8 @@ class SolrClient:
 
         self.word_split_re = re.compile(config.get("word_split_re", r'[\s,.:;"]+'))
         self.default_search_limit = config.get("search_result_limit", 50)
+        self.facet_search_limit = config.get("facet_search_limit", 50)
+        self.set_search_result_limit_per_facet = config.get("set_search_result_limit_per_facet", False)
         self.search_result_sort = config.get("search_result_sort", "score desc, sort asc")
 
         permissions = PermissionsReader(tenant, logger)
@@ -55,10 +57,16 @@ class SolrClient:
         if not filter:
             # use all permitted facets if filter is empty
             filter_ids = list(solr_facets.keys())
+
         if not limit:
             limit = self.default_search_limit
 
-        response = self.query(tokens, filterword, filter_ids, limit, solr_facets)
+        facetlimit = self.facet_search_limit
+        if self.set_search_result_limit_per_facet:
+            facetlimit = limit
+            limit = None
+
+        response = self.query(tokens, filterword, filter_ids, limit, facetlimit + 1, solr_facets)
 
         # Return Solr error response
         if type(response) is tuple:
@@ -99,13 +107,16 @@ class SolrClient:
 
         return {"results": results, "result_counts": list(result_counts.values())}
 
-    def query(self, tokens, filterword, filter_ids, limit, solr_facets):
+    def query(self, tokens, filterword, filter_ids, limit, facetlimit, solr_facets):
         # https://lucene.apache.org/solr/guide/8_1/common-query-parameters.html
         q = self.query_str(tokens)
         fq = self.filter_query_str(filterword, filter_ids, solr_facets)
+        limit_param = f"facet.limit={facetlimit}"
+        if limit:
+            limit_param += "&rows={limit}"
         response = requests.get(
             self.solr_service_url,
-            params=f"omitHeader=true&facet=true&facet.field=facet&sort={self.search_result_sort}&rows={limit}&{q}&{fq}",
+            params=f"omitHeader=true&facet=true&facet.field=facet&sort={self.search_result_sort}&{limit_param}&{q}&{fq}",
             auth=self.solr_service_auth,
             timeout=10
         )

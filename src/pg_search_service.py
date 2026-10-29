@@ -32,7 +32,8 @@ class PgClient:
 
         self.word_split_re = re.compile(config.get("word_split_re", r'[\s,.:;"]+'))
         self.default_search_limit = config.get("search_result_limit", 50)
-        self.facet_search_limit = config.get("pg_facet_search_limit", config.get("trgm_facet_search_limit", 50))
+        self.facet_search_limit = config.get("facet_search_limit", 50)
+        self.set_search_result_limit_per_facet = config.get("set_search_result_limit_per_facet", False)
 
         self.filterwords = {facet["filter_word"]: facet["name"] for facet in config.resources().get("facets", [])}
 
@@ -76,6 +77,11 @@ class PgClient:
         if not limit:
             limit = self.default_search_limit
 
+        facetlimit = self.facet_search_limit
+        if self.set_search_result_limit_per_facet:
+            facetlimit = limit
+            limit = None
+
         # Prepare query
         layer_query = self.layer_query
         if self.layer_query_template:
@@ -94,7 +100,7 @@ class PgClient:
                 searchtext=self.sql_escape(searchtext),
                 words=list(map(self.sql_escape, tokens)),
                 facets=search_ds,
-                facetlimit=self.facet_search_limit + 1,
+                facetlimit=facetlimit + 1,
             )
             self.logger.debug("Generated feature query from template")
 
@@ -128,7 +134,7 @@ class PgClient:
                     "terms": tokens,
                     "thres": self.similarity_threshold,
                     "facets": search_ds,
-                    "facetlimit": self.facet_search_limit + 1,
+                    "facetlimit": facetlimit + 1,
                 }
                 feature_results = conn.execute(sql_text(feature_query), params).mappings().all()
                 self.logger.debug("Done in %f s" % (time.time() - start))
@@ -181,8 +187,8 @@ class PgClient:
                 feature_result_count += 1
                 result_counts[feature_result["facet_id"]]["count"] += 1
                 if (
-                    feature_result_count <= limit
-                    and result_counts[feature_result["facet_id"]]["count"] <= self.facet_search_limit
+                    (limit is None or feature_result_count <= limit)
+                    and result_counts[feature_result["facet_id"]]["count"] <= facetlimit
                 ):
                     results.append({
                         "feature": {
@@ -198,8 +204,8 @@ class PgClient:
                     })
 
         for facet in result_counts:
-            # Search query limited results, the true result count is not known
-            if result_counts[facet]["count"] >= self.facet_search_limit:
+            # The search query limited the results, the true result count is not known
+            if result_counts[facet]["count"] >= facetlimit:
                 result_counts[facet]["count"] = -1
 
         return {"results": results, "result_counts": list(result_counts.values())}
