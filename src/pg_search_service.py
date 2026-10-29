@@ -34,7 +34,6 @@ class PgClient:
         self.default_search_limit = config.get("search_result_limit", 50)
         self.facet_search_limit = config.get("pg_facet_search_limit", config.get("trgm_facet_search_limit", 50))
 
-        self.facets = {facet["name"]: facet for facet in config.resources().get("facets", [])}
         self.filterwords = {facet["filter_word"]: facet["name"] for facet in config.resources().get("facets", [])}
 
         permissions = PermissionsReader(tenant, logger)
@@ -66,11 +65,8 @@ class PgClient:
         # Determine permitted facets and dataproducts
         search_facets = self.resources.solr_facets(identity)
         permitted_dataproducts = self.resources.dataproducts(identity)
-        if not searchfilter:
-            # use all permitted facets if filter is empty
-            search_facets = list(search_facets.keys())
-        else:
-            search_facets = [facet for facet in searchfilter if facet in search_facets]
+        if searchfilter:
+            search_facets = {facetName: facet for facetName, facet in search_facets.items() if facetName in searchfilter}
 
         search_ds = [facet for facet in search_facets if facet not in ["foreground", "background"]]
         search_dp = [facet for facet in search_facets if facet in ["foreground", "background"]]
@@ -165,7 +161,7 @@ class PgClient:
                     if stacktype not in result_counts:
                         result_counts[stacktype] = {
                             "dataproduct_id": stacktype,
-                            "filterword": self.facets.get(stacktype, {}).get("filter_word", stacktype),
+                            "filterword": search_facets.get(stacktype, {}).get("filter_word", stacktype),
                             "count": 0
                         }
                     result_counts[stacktype]["count"] += 1
@@ -174,7 +170,9 @@ class PgClient:
         for feature_result in feature_results:
             if feature_result["facet_id"] in search_ds:
                 if feature_result["facet_id"] not in result_counts:
-                    filterword = self.facets.get(feature_result["facet_id"], {}).get("filter_word", feature_result["facet_id"])
+                    filterword = search_facets.get(
+                        feature_result["facet_id"], {}).get("filter_word", feature_result["facet_id"]
+                    )
                     result_counts[feature_result["facet_id"]] = {
                         "dataproduct_id": feature_result["facet_id"],
                         "filterword": filterword,
