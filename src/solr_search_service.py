@@ -102,7 +102,7 @@ class SolrClient:
 
         for facet in result_counts:
             # The search query limited the results, the true result count is not known
-            if result_counts[facet]["count"] >= facetlimit:
+            if result_counts[facet]["count"] >= facetlimit + 1:
                 result_counts[facet]["count"] = -1
 
         return {"results": results, "result_counts": list(result_counts.values()), "limit": limit or facetlimit}
