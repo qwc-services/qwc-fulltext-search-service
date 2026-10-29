@@ -43,10 +43,10 @@ class PgClient:
         self.db_engine = DatabaseEngine()
         self.db_url = config.get("db_url")
         self.filter_word_query = config.get("pg_filter_word_query", config.get("trgm_filter_word_query"))
-        self.feature_query = config.get("pg_feature_query", config.get("trgm_feature_query"))
-        self.feature_query_template = config.get("pg_feature_query_template", config.get("trgm_feature_query_template"))
-        self.layer_query = config.get("pg_layer_query", config.get("trgm_layer_query"))
-        self.layer_query_template = config.get("pg_layer_query_template", config.get("trgm_layer_query_template"))
+        self.feature_query = config.get("pg_feature_query")
+        self.feature_query_template = config.get("pg_feature_query_template")
+        self.layer_query = config.get("pg_layer_query")
+        self.layer_query_template = config.get("pg_layer_query_template")
         self.similarity_threshold = config.get("trgm_similarity_threshold", 0.3)
 
     def sql_escape(self, string):
