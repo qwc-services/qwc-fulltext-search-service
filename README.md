@@ -127,20 +127,19 @@ Solr Administration User Interface: http://localhost:8983/solr/
 
 Core overview: http://localhost:8983/solr/#/gdi/core-overview
 
-Solr Ref guide: https://lucene.apache.org/solr/guide/8_0/
+Solr reference guide: https://lucene.apache.org/solr/guide/8_0/
+
 Indexing: https://lucene.apache.org/solr/guide/8_0/uploading-structured-data-store-data-with-the-data-import-handler.html#dataimporthandler-commands
 
-`solr-precreate` creates core in `/var/solr/data/gdi`.
-After a configuration change remove the content of `/var/solr/data`
-e.g. with `sudo rm -rf volumes/solr/data/*`
+After a configuration change remove the content of `/var/solr/data`, e.g. with `sudo rm -rf volumes/solr/data/*`, then execute
 
-    curl 'http://localhost:8983/solr/gdi/dih_geodata?command=full-import'
-    curl 'http://localhost:8983/solr/gdi/dih_geodata?command=status'
-    curl 'http://localhost:8983/solr/gdi/select?q=search_1_stem:austr*'
+    curl 'http://localhost:8983/solr/gdi/CONFIG_NAME?command=full-import'
 
-    curl 'http://localhost:8983/solr/gdi/dih_metadata?command=full-import&clean=false'
-    curl 'http://localhost:8983/solr/gdi/dih_metadata?command=status'
-    curl 'http://localhost:8983/solr/gdi/select?q=search_1_stem:qwc_demo'
+where CONFIG_NAME is for instance `dih_geodata_config`.
+
+You can check the status with
+
+    curl 'http://localhost:8983/solr/gdi/CONFIG_NAME?command=status'
 
 If you encounter permission problems with the solr service then try the following command:
 
