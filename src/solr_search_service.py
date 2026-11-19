@@ -113,7 +113,7 @@ class SolrClient:
         fq = self.filter_query_str(filterword, filter_ids, solr_facets)
         limit_param = f"facet.limit={facetlimit}"
         if limit:
-            limit_param += "&rows={limit}"
+            limit_param += f"&rows={limit}"
         response = requests.get(
             self.solr_service_url,
             params=f"omitHeader=true&facet=true&facet.field=facet&sort={self.search_result_sort}&{limit_param}&{q}&{fq}",
